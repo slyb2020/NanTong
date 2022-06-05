@@ -1,0 +1,404 @@
+Ral1000:203,185,1411000 Green beige 米绿色
+                
+Ral1001:204,176,1371001 Beige 米色，淡黄或灰黄
+
+Ral1002:205,169,1161002 Sand yellow 沙黄色
+
+Ral1003:244,168,471003 Signal yellow 信号黄
+
+Ral1004:222,156,311004 Goldenyellow 金黄色
+
+Ral1005:197,140,191005 Honey yellow 蜜黄色
+
+Ral1006:221,142,311006 Maize yellow 玉米黄
+
+Ral1007:225,140,241007 Daffodil yellow 灰黄色
+
+Ral1011:166,124,821011 Brown beige 米褐色
+
+Ral1012:219,175,681012 Lemon yellow 柠檬黄
+
+Ral1013:232,224,2061013 Oyster white 近于白色的浅灰
+Ral1014:221,200,1631014 Ivory 象牙色
+
+Ral1015:233,216,1891015 Light ivory 亮象牙色
+
+Ral1016:248,226,871016 Sulfur yellow 硫磺色
+
+Ral1017:241,173,951017 Saffron yellow 深黄色
+
+Ral1018:249,206,821018 Zinc yellow 绿黄色
+
+Ral1019:158,141,1231019 Grey beige 米灰色
+
+Ral1020:152,137,981020 Olive yellow 橄榄黄
+
+Ral1021:245,183,151021 Rape yellow 油菜黄
+
+Ral1023:245,183,151023 Traffic yellow 交通黄
+
+Ral1024:181,141,831024 Ochre yellow 赭黄色
+
+Ral1026:254,255,861026 Luminous yellow 亮黄色
+
+Ral1027:159,121,341027 Curry 咖喱色
+
+Ral1028:253,157,111028 Melon yellow 浅橙黄
+
+Ral1032:221,160,431032 Broom yellow 金雀花黄
+
+Ral1033:243,155,581033 Dahlia yellow 大丽花黄
+
+Ral1034:230,159,961034 Pastel yellow 粉黄色
+
+RAL1035,106,93,771035 Pearl beige 米珍珠色
+
+RAL1036,112,83,531036 Pearl gold 金黄珍珠
+
+Ral1037:238,139,11037 Sun yellow 日光黄
+
+Ral2000:205,111,332000 Yellow orange 黄橙色
+
+Ral2001:171,77,462001 Red orange 橘红
+
+Ral2002:172,60,402002 Vermilion 朱红
+
+Ral2003:234,124,602003 Paster orange 淡橙
+
+Ral2004:212,85,262004 Pure orange 纯橙
+
+Ral2005:253,75,402005 Luminous orange 亮橙
+
+Ral2007:255,144,662007 Luminous bright orange 亮浅橙
+Ral2008:225,109,502008 Bright red orange 浅红橙
+
+Ral2009:203,81,242009 Traffic orange 交通橙
+
+Ral2010:192,93,522010 Signal?orange 信号橙
+
+Ral2011:217,114,492011 Deep orange 深橙色
+
+Ral2012:201,101,792012 Salmon orange 鲑鱼橙
+
+RAL2013,195,88,492013 Pearl orange 珍珠橙
+
+Ral3000:146,44,343000 Flame red 火焰红
+
+Ral3001:163,23,263001 Signal red 信号红
+
+Ral3002:138,43,393002 Carmine red 胭脂红
+
+Ral3003:138,18,203003 Ruby red 宝石红
+
+Ral3004:93,34,363004 Purple red 紫红色
+
+Ral3005:77,35,383005 Wine red 葡萄酒红
+
+Ral3007:50,31,323007 Black red 黑红色
+
+Ral3009:92,47,403009 Oxide red 氧化红
+
+Ral3011:104,40,393011 Brown red 红玄武土色
+
+Ral3012:190,134,1143012 Beige red 米红色
+
+Ral3013:132,45,343013 Tomato red 番茄红
+
+Ral3014:190,113,1163014 Antique pink 古粉红色
+
+Ral3015:210,162,1693015 Light pink 淡粉红色
+
+Ral3016:149,62,493016 Coral red 珊瑚红色
+
+Ral3017:186,84,903017 Rose 玫瑰色
+
+Ral3018:185,75,813018 Strawberry red 草莓红
+
+Ral3020:166,43,303020 Traffic red 交通红
+
+Ral3022:194,104,873022 Salmon pink 鲑鱼粉红色
+
+Ral3024:253,66,483024 Luminous red 亮红色
+
+Ral3026:251,69,393026 Luminous bright red 淡亮红色
+Ral3027:155,51,623027 Raspbery red 悬钩子红色
+
+Ral3031:149,56,563031 Orient red 戈亚红色
+
+RAL3031:179,36,403032 Pearl ruby red 红宝石珍珠红
+RAL3032:114,20,343033 Pearl pink 珍珠红色
+
+Ral4001:119,92,1234001 Red lilac 丁香红
+
+Ral4002:121,58,704002 Red violet 紫红色
+
+Ral4003:182,96,1344003 Heather violet 石南紫
+
+Ral4004:83,30,474004 Claret violet 酒红紫
+
+Ral4005:113,100,1444005 Blue lilac 丁香蓝
+
+Ral4006:129,58,1074006 Traffic purple 交通紫
+
+Ral4007:58,33,504007 Purple violet 紫红蓝色
+
+Ral4008:117,72,1184008 Signal violet 信号紫罗兰
+
+Ral4009:149,129,1404009 Pastel violet 崧蓝紫色
+
+Ral4010:166,58,1044010 Telemagenta 电视品红色
+
+RAL4011:134,115,1614011 Pearl violet 珍珠紫
+
+RAL4012:108,104,1294012 Peal blackberry 珍珠黑
+
+Ral5000:46,72,1005000 Violet blue 紫蓝色
+
+Ral5001:20,65,875001 Green blue 蓝绿色
+
+Ral5002:27,54,1105002 Ultramarine blue 群青蓝
+
+Ral5003:21,45,705003 Sapphire blue 蓝宝石蓝
+
+Ral5004:3,13,315004 Black blue 蓝黑色
+
+Ral5005:10,74,1195005 Signal blue 信号蓝
+
+Ral5007:62,101,1315007 Brillant blue 亮蓝色
+
+Ral5008:40,52,615008 Grey blue 灰蓝色
+
+Ral5009:36,83,1065009 Azure blue 天青蓝
+
+Ral5010:6,65,1065010 Gentian blue 龙胆蓝色
+
+Ral5011:24,37,505011 Steel blue 钢蓝色
+
+Ral5012:49,130,1725012 Light blue 淡蓝色
+
+Ral5013:21,39,665013 Cobalt blue 钴蓝色
+
+Ral5014:96,118,1425014 Pigeon blue 鸽蓝色
+
+Ral5015:29,118,1645015 Sky blue 天蓝色
+
+Ral5017:7,82,1245017 Traffic blue 交通蓝
+
+Ral5018:48,131,1325018 Turquoise blue 绿松石蓝
+
+Ral5019:12,81,1175019 Capri blue 卡布里蓝色
+
+Ral5020:6,50,585020 Ocean blue 海蓝色
+
+Ral5021:14,109,1115021 Water blue 不来梅蓝色
+
+Ral5022:33,41,775022 Night blue 夜蓝色
+
+Ral5023:70,102,1335023 Distant blue 冷蓝色
+
+Ral5024:103,144,1675024 Pastel blue 崧蓝蓝色
+
+RAL5025:42,100,1205025 Pearl gentian blue 珍珠龙胆蓝
+RAL5026:16,44,845026 Pearl night blue 珍珠夜蓝
+
+Ral6000:68,110,936000 Patina green 铜锈绿色
+
+Ral6001:59,97,586001 Emerald greet 翡翠绿色
+
+Ral6002:44,78,386002 Leaf green 叶绿色
+
+Ral6003:72,74,556003 Olive green 橄榄绿
+
+Ral6004:21,58,576004 Blue green 蓝绿色
+
+Ral6005:10,56,316005 Moss green 苔藓绿
+
+Ral6006:1,2,36006 Grey olrve 橄榄灰绿
+
+Ral6007:12,23,346007 Bottle green 瓶绿
+
+Ral6008:33,29,166008 Brown green 褐绿
+
+Ral6009:35,45,396009 Fir greet 冷杉绿
+
+Ral6010:71,99,526010 Grass greet 草绿色
+
+Ral6011:104,117,886011 Reseda green 淡橄榄绿
+
+Ral6012:41,52,516012 Black green 墨绿色
+
+Ral6013:116,110,866013 Reed green 芦苇绿
+
+Ral6014:61,58,486014 Yellow olive 橄榄黄
+
+Ral6015:53,56,516015 Black olive 黑齐墩果色
+
+Ral6016:18,95,716016 Turquoise green 绿松石绿色
+Ral6017:91,121,666017 May green 五月红
+
+Ral6018:101,148,686018 Yellow green 黄绿色
+
+Ral6019:186,205,1746019 Pastel green 崧蓝绿色
+
+Ral6020:52,60,466020 Chrome green 铭绿色
+
+Ral6021:134,149,1196021 Pale green 浅绿色
+
+Ral6022:51,47,386022 Olive drab 橄榄土褐色
+
+Ral6024:32,124,776024 Traffic green 交通绿
+
+Ral6025:88,101,616025 Fern green 蕨绿色
+
+Ral6026:3,83,686026 Opal green 蛋白石绿色
+
+Ral6027:132,185,1826027 Light green 浅绿色
+
+Ral6028:50,75,626028 Pine green 松绿色
+
+Ral6029:13,103,616029 Mint green 薄荷绿
+
+Ral6032:36,113,706032 Signal greet 信号绿
+
+Ral6033:76,128,1216033 Mint turquoise 薄荷绿蓝色
+
+Ral6034:128,170,1716034 Pastel turquoies 崧蓝绿松石色R
+AL6035:28,84,456035 Pearl green 珍珠绿
+
+RAL6036:22,53,556036 Pearl opal green 不透明蓝白绿
+Ral7000:120,131,1377000 Squirrel grey 松鼠灰
+
+Ral7001:137,145,1507001 Silver grey 银灰色
+
+Ral7002:124,117,1017002 Olive grey 橄榄灰绿色
+
+Ral7003:115,113,1027003 Moss grey 苔藓绿
+
+Ral7004:152,153,1557004 Signal grey 信号灰
+
+Ral7005:101,104,1027005 Mouse grey 鼠灰色
+
+Ral7006:110,100,907006 Beige grey 米灰色
+
+Ral7008:109,90,627008 Khaki grey 土黄灰色
+
+Ral7009:77,81,747009 Green grey 绿灰色
+
+Ral7010:81,83,807010 Tarpaulin gey 油布灰
+
+Ral7011:74,81,847011 Iron grey 铁灰色
+
+Ral7012:81,87,897012 Basalt grey 玄武石灰
+
+Ral7013:76,72,637013 Brown grey 褐灰色
+
+Ral7015:71,74,807015 Slate grey 浅橄榄灰
+
+Ral7016:54,61,657016 Anthracite grey 煤灰
+
+Ral7021:39,43,467021 Black grey 黑灰
+
+Ral7022:69,67,637022 Umbra grey 暗灰
+
+Ral7023:121,122,1137023 Concrete grey 混凝土灰
+Ral7024:62,65,707024 Graphite grey 石墨灰
+
+Ral7026:49,59,627026 Granite grey 花岗灰
+
+Ral7030:142,138,1307030 Stone grey 石灰色
+
+Ral7031:88,100,1067031 Blue grey 蓝灰色
+
+Ral7032:181,177,1637032 Pebble grey 卵石灰
+
+Ral7033:122,125,1127033 Cement grey 水泥灰
+
+Ral7034:141,132,1127034 Yellow grey 黄灰色
+
+Ral7035:200,204,2017035 Light grey 浅灰色
+
+Ral7036:145,143,1447036 Platinum grey 铂灰色
+
+Ral7037:119,121,1217037 Dusty grey 土灰色
+
+Ral7038:175,178,1727038 Agate grey 玛瑙灰
+
+Ral7039:96,93,877039 Quartz grey 石英灰
+
+Ral7040:92,99,1047040 Window grey 窗灰色
+
+Ral7042:139,145,1457042 Traffic grey A 交通灰A 
+Ral7043:69,73,727043 Traffic grey B 交通灰B 
+Ral7044:184,181,1727044 Silk grey 深铭灰色
+
+Ral7045:135,143,1467045 Telegrey 1 电视灰1
+
+Ral7046:120,128,1337046 Telegrey 2 电视灰2
+
+Ral7047:203,203,2037047 Telegrey 4 电视灰4
+
+Ral7048:137,129,1187048 Pearl mouse grey 珍珠鼠灰
+Ral8000:126,99,648000 Green brown 绿褐色
+
+Ral8001:146,96,538001 Ochre brown 赭石棕色
+
+Ral8002:107,70,598002 Signal brown 信号褐
+
+Ral8003:118,76,518003 Clay brown 土棕褐色
+
+Ral8004:128,71,528004 Coper brown 铜棕色
+
+Ral8007:99,65,448007 Fawn brown 鹿褐色
+
+Ral8008:100,67,418008 Olive brown 橄榄棕色
+
+Ral8011:73,43,298011 Nut brown 深棕色
+
+Ral8012:81,38,308012 Red brown 红褐色
+
+Ral8014:57,42,328014 Sepia brown 乌贼棕色
+
+Ral8015:83,48,438015 Chestnut brown 粟棕色
+
+Ral8016:64,40,338016 Mahogany brown 桃花心木褐
+Ral8017:51,35,308017 Chocolate brown 巧克力棕色
+Ral8019:59,53,538019 Grey brown 灰褐色
+
+Ral8022:17,14,148022 Black brown 黑褐色
+
+Ral8023:152,87,548023 Orange brown 桔黄褐
+
+Ral8024:108,75,568024 Beige brown 哔叽棕色
+
+Ral8025:108,86,738025 Pale brown 浅褐色
+
+Ral8028:68,51,408028 Terra brown 浅灰褐色
+
+Ral8029:118,60,408029 Pearl copper 珍珠铜棕色
+Ral8077:68,45,35
+
+Ral9001:239,231,2199001 Cream 彩黄色
+
+Ral9002:217,216,2089002 Grey white 灰白色
+
+Ral9003:255,255,2559003 Signal white 信号白
+
+Ral9004:14,13,149004 Signal black 信号黑
+
+Ral9005:6,7,79005 Jet black 墨黑色
+
+Ral9006:185,189,1979006 White aluminium 白铝灰色
+Ral9007:144,141,1409007 Grey aluminium 灰铝色
+
+Ral9010:250,255,2559010 Pure white 纯白色
+
+Ral9011:25,25,269011 Graphiack 石墨黑
+
+Ral9016:252,255,2559016 Traffic white 交通白
+
+Ral9017:7,7,79017 Traffic black 交通黑
+
+Ral9018:201,204,1999018 Papyrus white 草纸白
+
+Ral9022:156,156,1569022 Pearl light grey 珍珠浅灰
+Ral9023:130,130,1309023 Pearl dark grey 珍珠深灰
