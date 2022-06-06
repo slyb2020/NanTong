@@ -160,7 +160,6 @@ class SpecificBluePrintManagementPanel(wx.Panel):
 
 
     def CreateLeftPanel(self):
-        self.leftPanel.Freeze()
         vvbox = wx.BoxSizer(wx.VERTICAL)
         self.bluePrintGrid = BluePrintGrid(self.leftPanel, self, self.log, WallGridDataTranslate)
         vvbox.Add(self.bluePrintGrid, 1, wx.EXPAND)
@@ -209,7 +208,6 @@ class SpecificBluePrintManagementPanel(wx.Panel):
         hhbox.Add(self.changeStateBTN,0,wx.EXPAND)
         searchPanel.SetSizer(hhbox)
         self.leftPanel.SetSizer(vvbox)
-        self.leftPanel.Thaw()
 
     def Translate(self, data):
         result = list(data[:4])
@@ -983,7 +981,6 @@ class CeilingPrintManagementPanel(wx.Panel):
 
 
     def CreateLeftPanel(self):
-        self.leftPanel.Freeze()
         vvbox = wx.BoxSizer(wx.VERTICAL)
         self.bluePrintGrid = BluePrintGrid(self.leftPanel, self, self.log, WallGridDataTranslate)
         vvbox.Add(self.bluePrintGrid, 1, wx.EXPAND)
@@ -1032,7 +1029,6 @@ class CeilingPrintManagementPanel(wx.Panel):
         hhbox.Add(self.changeStateBTN,0,wx.EXPAND)
         searchPanel.SetSizer(hhbox)
         self.leftPanel.SetSizer(vvbox)
-        self.leftPanel.Thaw()
 
     def Translate(self, data):
         result = list(data[:4])
@@ -1887,7 +1883,6 @@ class ConstructionManagementPanel(wx.Panel):
         self.middlePanel.Thaw()
 
     def CreateLeftPanel(self):
-        self.leftPanel.Freeze()
         vvbox = wx.BoxSizer(wx.VERTICAL)
         self.constructionGrid = BluePrintGrid(self.leftPanel, self, self.log, ContructionGridDataTranslate)
         vvbox.Add(self.constructionGrid, 1, wx.EXPAND)
@@ -1936,17 +1931,14 @@ class ConstructionManagementPanel(wx.Panel):
         hhbox.Add(self.changeStateBTN,0,wx.EXPAND)
         searchPanel.SetSizer(hhbox)
         self.leftPanel.SetSizer(vvbox)
-        self.leftPanel.Thaw()
 
     def ReCreateRightPanel(self,filename=""):
-        self.rightPanel.Freeze()
         self.rightPanel.DestroyChildren()
         vbox = wx.BoxSizer(wx.VERTICAL)
         self.bluePrintShowPanel = BluePrintShowPanel(self.rightPanel, self.log,filename)
         vbox.Add(self.bluePrintShowPanel, 1, wx.EXPAND)
         self.rightPanel.SetSizer(vbox)
         self.rightPanel.Layout()
-        self.rightPanel.Thaw
 
     def OnEditOkBTN(self,event):
         if self.editState == '新建':
@@ -2099,9 +2091,10 @@ class ConstructionManagementPanel(wx.Panel):
 class BluePrintManagementPanel(wx.Panel):
     def __init__(self, parent, master, log):
         wx.Panel.__init__(self, parent, -1)
-        self.Freeze()
         self.master = master
         self.log = log
+    def ReCreate(self):
+        self.Freeze()
         self.processList=["505","405","409","406","652","100","306","9000"]
         self.notebook = wx.Notebook(self, -1, size=(21, 21), style=
                                     # wx.BK_DEFAULT
@@ -2134,4 +2127,5 @@ class BluePrintManagementPanel(wx.Panel):
         self.sparyBoardManagementPanel = wx.Panel(self.notebook)
         self.notebook.AddPage(self.sparyBoardManagementPanel, "检修口图纸管理")
         self.notebook.SetSelection(0)
+        self.Layout()
         self.Thaw()

@@ -669,7 +669,6 @@ class LargeImageEditor(wxpg.PGEditor):
 ############################################################################
 
 class PropertyPanel(wx.Panel):
-
     def __init__( self, parent, log ,size):
         wx.Panel.__init__(self, parent, wx.ID_ANY,size=size)
         self.log = log

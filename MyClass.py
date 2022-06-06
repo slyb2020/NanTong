@@ -37,7 +37,7 @@ from wx.lib.agw.fmresources import ControlFocus, ControlPressed
 from wx.lib.agw.fmresources import FM_OPT_SHOW_CUSTOMIZE, FM_OPT_SHOW_TOOLBAR, FM_OPT_MINIBAR
 import datetime
 from SystemIntroductionPanel import SystemIntroductionPanel
-from OrderManagementPanel import OrderManagementPanel
+from ManufactureManagementPanel import ManufactureManagementPanel
 from BoardManagementPanel import BoardManagementPanel
 from BluePrintManagementPanel import BluePrintManagementPanel
 from ExcelImport import XLSGridFrame
@@ -52,6 +52,7 @@ from ExcelOperation import GetOrderIDFromExcelFile,GetSubOrderIDListFromExcelFil
 from xls2xlsx import xls2xlsx
 import wx.lib.agw.gradientbutton as GB
 from MakePdfReport import *
+from OrderManagementPanel import OrderManagementPanel,CreateNewOrderDialog
 
 def switchRGBtoBGR(colour):
     return wx.Colour(colour.Blue(), colour.Green(), colour.Red())
@@ -274,7 +275,9 @@ class MainPanel(wx.Panel):
         # will occupy the space not used by the Layout Algorithm
         self.CreateBottomWindow()
         self.log = MyLogCtrl(self.bottomWindow, -1, "")
+        self.Freeze()
         self.work_zone_Panel = WorkZonePanel(self, self.parent, self.log)
+        self.Thaw()
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.ReCreateFoldPanel(0)
         self.Bind(wx.adv.EVT_SASH_DRAGGED_RANGE, self.OnSashDrag, id=ID_WINDOW_LEFT,
@@ -308,6 +311,7 @@ class MainPanel(wx.Panel):
 
     def ReCreateFoldPanel(self, fpb_flags, state=0):
         # delete earlier panel
+        self._leftWindow1.Freeze()
         self._leftWindow1.DestroyChildren()
         self._pnl = fpb.FoldPanelBar(self._leftWindow1, -1, wx.DefaultPosition,
                                      wx.Size(-1, -1), agwStyle=fpb_flags|fpb.FPB_COLLAPSE_TO_BOTTOM)
@@ -363,16 +367,44 @@ class MainPanel(wx.Panel):
                                           foldIcons=Images)
             item.SetLabel("订单操作面板")
             panel = wx.Panel(item, -1, size=(300, 700))
+            vbox = wx.BoxSizer(wx.VERTICAL)
+            if self.parent.operatorCharacter == "下单员":
+                bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
+                                   wx.BITMAP_TYPE_PNG)
+                self.newOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  新建订单", size=(100, 50))
+                self.newOrderBTN.Bind(wx.EVT_BUTTON,self.OnCreateNewOrderBTN)
+                self.newOrderBTN.SetForegroundColour(wx.BLACK)
+                # self.editOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  批量排产", size=(100, 50))
+                # self.editOrderBTN.SetForegroundColour(wx.BLACK)
+                static = wx.StaticLine(panel, -1)
+                vbox.Add(self.newOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+            # vbox.Add(self.editOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+                vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+            self.orderInfoPanel=wx.Panel(panel,size=(-1,500))
+            vbox.Add(self.orderInfoPanel,1,wx.EXPAND)
+            panel.SetSizer(vbox)
+            # self.ReCreateOrderInfoPanel()
+            self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
+            if self.parent.operatorCharacter == "下单员":
+                item.Expand()
+            else:
+                item.Collapse()
+
+        if self.parent.operatorCharacter in ["技术员","下单员","管理员"]:
+            item = self._pnl.AddFoldPanel("生产管理面板", collapsed=False,
+                                          foldIcons=Images)
+            item.SetLabel("生产管理面板")
+            panel = wx.Panel(item, -1, size=(300, 700))
             bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
                                wx.BITMAP_TYPE_PNG)
-            self.newOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  新建订单", size=(100, 50))
-            self.newOrderBTN.Bind(wx.EVT_BUTTON,self.OnNewOrderBTN)
-            self.newOrderBTN.SetForegroundColour(wx.BLACK)
+            self.importOderDataBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  导入订单数据", size=(100, 50))
+            self.importOderDataBTN.Bind(wx.EVT_BUTTON, self.OnImportOrderDataBTN)
+            self.importOderDataBTN.SetForegroundColour(wx.BLACK)
             # self.editOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  批量排产", size=(100, 50))
             # self.editOrderBTN.SetForegroundColour(wx.BLACK)
             static = wx.StaticLine(panel, -1)
             vbox = wx.BoxSizer(wx.VERTICAL)
-            vbox.Add(self.newOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+            vbox.Add(self.importOderDataBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
             # vbox.Add(self.editOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
             vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
             self.orderInfoPanel=wx.Panel(panel,size=(-1,500))
@@ -385,58 +417,59 @@ class MainPanel(wx.Panel):
             else:
                 item.Collapse()
 
-        if self.parent.operatorCharacter in ["技术员","管理员"]:
-            cs = fpb.CaptionBarStyle()
-            cs.SetCaptionStyle(fpb.CAPTIONBAR_GRADIENT_H)
-            cs.SetFirstColour(wx.Colour(223,223,223))
-            cs.SetSecondColour(wx.Colour(123,0,0))
-            item = self._pnl.AddFoldPanel("标签/胶水单操作面板", collapsed=False,
-                                          foldIcons=Images, cbstyle=cs)
-            item.SetLabel("标签/胶水单操作面板")
-            panel = wx.Panel(item, -1, size=(300, 300))
-            bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
-                               wx.BITMAP_TYPE_PNG)
-            self.newGlueBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, " 新建标签/胶水单", size=(100, 50))
-            self.newGlueBTN.SetForegroundColour(wx.BLACK)
-            self.editGlueBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, " 查询标签/胶水单", size=(100, 50))
-            self.editGlueBTN.SetForegroundColour(wx.BLACK)
-            static = wx.StaticLine(panel, -1)
-            vbox = wx.BoxSizer(wx.VERTICAL)
-            vbox.Add(self.newGlueBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            vbox.Add(self.editGlueBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            panel.SetSizer(vbox)
-            self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
-            item.Collapse()
-
-        if self.parent.operatorCharacter in ["技术员","发货员","管理员"]:
-            cs = fpb.CaptionBarStyle()
-            cs.SetCaptionStyle(fpb.CAPTIONBAR_GRADIENT_H)
-            cs.SetFirstColour(wx.Colour(123,123,123))
-            cs.SetSecondColour(wx.Colour(123,12,123))
-            # cs.SetCaptionColour(wx.Colour(123,124,235))
-            cs.SetCaptionStyle(fpb.CAPTIONBAR_RECTANGLE)
-            item = self._pnl.AddFoldPanel("货盘单操作面板", collapsed=False,
-                                          foldIcons=Images, cbstyle=cs)
-            item.SetLabel("货盘单操作面板")
-            panel = wx.Panel(item, -1, size=(300, 300))
-            bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
-                               wx.BITMAP_TYPE_PNG)
-            self.newDockerBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, " 新建货盘", size=(100, 50))
-            self.newDockerBTN.SetForegroundColour(wx.BLACK)
-            self.editDockerBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, " 编辑货盘", size=(100, 50))
-            self.editDockerBTN.SetForegroundColour(wx.BLACK)
-            static = wx.StaticLine(panel, -1)
-            vbox = wx.BoxSizer(wx.VERTICAL)
-            vbox.Add(self.newDockerBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            vbox.Add(self.editDockerBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            panel.SetSizer(vbox)
-            self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
-            if self.parent.operatorCharacter == "发货员":
-                item.Expand()
-            else:
-                item.Collapse()
+        # if self.parent.operatorCharacter in ["技术员","管理员"]:
+        #     cs = fpb.CaptionBarStyle()
+        #     cs.SetCaptionStyle(fpb.CAPTIONBAR_GRADIENT_H)
+        #     cs.SetFirstColour(wx.Colour(223,223,223))
+        #     cs.SetSecondColour(wx.Colour(123,0,0))
+        #     item = self._pnl.AddFoldPanel("标签/胶水单操作面板", collapsed=False,
+        #                                   foldIcons=Images, cbstyle=cs)
+        #     item.SetLabel("标签/胶水单操作面板")
+        #     panel = wx.Panel(item, -1, size=(300, 300))
+        #     bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
+        #                        wx.BITMAP_TYPE_PNG)
+        #     self.newGlueBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, " 新建标签/胶水单", size=(100, 50))
+        #     self.newGlueBTN.SetForegroundColour(wx.BLACK)
+        #     self.editGlueBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, " 查询标签/胶水单", size=(100, 50))
+        #     self.editGlueBTN.SetForegroundColour(wx.BLACK)
+        #     static = wx.StaticLine(panel, -1)
+        #     vbox = wx.BoxSizer(wx.VERTICAL)
+        #     vbox.Add(self.newGlueBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     vbox.Add(self.editGlueBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     panel.SetSizer(vbox)
+        #     self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
+        #     item.Collapse()
+        #
+        # if self.parent.operatorCharacter in ["技术员","发货员","管理员"]:
+        #     cs = fpb.CaptionBarStyle()
+        #     cs.SetCaptionStyle(fpb.CAPTIONBAR_GRADIENT_H)
+        #     cs.SetFirstColour(wx.Colour(123,123,123))
+        #     cs.SetSecondColour(wx.Colour(123,12,123))
+        #     # cs.SetCaptionColour(wx.Colour(123,124,235))
+        #     cs.SetCaptionStyle(fpb.CAPTIONBAR_RECTANGLE)
+        #     item = self._pnl.AddFoldPanel("货盘单操作面板", collapsed=False,
+        #                                   foldIcons=Images, cbstyle=cs)
+        #     item.SetLabel("货盘单操作面板")
+        #     panel = wx.Panel(item, -1, size=(300, 300))
+        #     bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
+        #                        wx.BITMAP_TYPE_PNG)
+        #     self.newDockerBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, " 新建货盘", size=(100, 50))
+        #     self.newDockerBTN.SetForegroundColour(wx.BLACK)
+        #     self.editDockerBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, " 编辑货盘", size=(100, 50))
+        #     self.editDockerBTN.SetForegroundColour(wx.BLACK)
+        #     static = wx.StaticLine(panel, -1)
+        #     vbox = wx.BoxSizer(wx.VERTICAL)
+        #     vbox.Add(self.newDockerBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     vbox.Add(self.editDockerBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     panel.SetSizer(vbox)
+        #     self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
+        #     if self.parent.operatorCharacter == "发货员":
+        #         item.Expand()
+        #     else:
+        #         item.Collapse()
+        self._leftWindow1.Thaw()
 
     def ReCreateOrderInfoPanel(self):
         self.orderInfoPanel.DestroyChildren()
@@ -530,9 +563,9 @@ class MainPanel(wx.Panel):
         idx8 = il.Add(green)
         idx9 = il.Add(blue)
         vbox.Add(self.orderDetailNotebook, 1, wx.EXPAND)
-        self.currentOrderID=self.work_zone_Panel.orderManagmentPanel.data[0]
-        self.currentOrderSubOrderIDStr = self.work_zone_Panel.orderManagmentPanel.data[8]
-        self.currentOrderSubOrderStateStr = self.work_zone_Panel.orderManagmentPanel.data[9]
+        self.currentOrderID=self.work_zone_Panel.manufactureManagementPanel.data[0]
+        self.currentOrderSubOrderIDStr = self.work_zone_Panel.manufactureManagementPanel.data[8]
+        self.currentOrderSubOrderStateStr = self.work_zone_Panel.manufactureManagementPanel.data[9]
         self.subOrderPanel = []
         self.suborderTotalSquireTXT=[]
         self.suborderTotalPanelAmountTXT=[]
@@ -618,6 +651,7 @@ class MainPanel(wx.Panel):
 
         title.SetSizer(vbox)
         self.orderInfoPanel.Layout()
+
     def OnGlueSchedulePrintBTN(self,event):
         obj = event.GetEventObject()
         name = obj.GetName()
@@ -628,22 +662,22 @@ class MainPanel(wx.Panel):
 
         wx.Yield()
         self.productionSchedule = ProductionScheduleAlgorithm(self.log,
-                                                              self.work_zone_Panel.orderManagmentPanel.data[0],
+                                                              self.work_zone_Panel.manufactureManagementPanel.data[0],
                                                               suborderNumber)
         if self.productionSchedule.wrongNumber == 0:
-            filename = scheduleDir + '%s/%s/GlueNoSheet.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
+            filename = scheduleDir + '%s/%s/GlueNoSheet.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
             if not os.path.exists(filename):
                 event.Skip()
-                MakeGlueNoSheetTemplate(self.work_zone_Panel.orderManagmentPanel.data[0], suborderNumber, filename,
-                                             self.productionSchedule.panelList)  # 这些数据在ProductionScheduleAlgorithm.py文件中
-            filename = scheduleDir + '%s/%s/GlueLabelSheet.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
+                MakeGlueNoSheetTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
+                                        self.productionSchedule.panelList)  # 这些数据在ProductionScheduleAlgorithm.py文件中
+            filename = scheduleDir + '%s/%s/GlueLabelSheet.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
             if not os.path.exists(filename):
                 event.Skip()
-                MakeGlueLabelSheetTemplate(self.work_zone_Panel.orderManagmentPanel.data[0], suborderNumber, filename,
-                                             self.productionSchedule.panelList)  # 这些数据在ProductionScheduleAlgorithm.py文件中
+                MakeGlueLabelSheetTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
+                                           self.productionSchedule.panelList)  # 这些数据在ProductionScheduleAlgorithm.py文件中
             del busy
-            dlg = GlueSheetManagementDailog(self, self.log, self.work_zone_Panel.orderManagmentPanel.data[0],
-                                           suborderNumber)
+            dlg = GlueSheetManagementDailog(self, self.log, self.work_zone_Panel.manufactureManagementPanel.data[0],
+                                            suborderNumber)
             dlg.CenterOnScreen()
             dlg.ShowModal()
             dlg.Destroy()
@@ -689,15 +723,15 @@ class MainPanel(wx.Panel):
                     # InsertNewOrderRecord(self.log, 1, self.newOrderID)
                     # CreateNewOrderSheet(self.log, 1, self.newOrderID)
                     _, boardList = GetAllOrderList(self.log, 1)
-                    self.work_zone_Panel.orderManagmentPanel.dataArray = np.array(boardList)
-                    self.work_zone_Panel.orderManagmentPanel.orderGrid.ReCreate()
+                    self.work_zone_Panel.manufactureManagementPanel.dataArray = np.array(boardList)
+                    self.work_zone_Panel.manufactureManagementPanel.orderGrid.ReCreate()
                 dlg2.Destroy()
         dlg.Destroy()
-        self.currentOrderID=self.work_zone_Panel.orderManagmentPanel.data[0]
-        self.currentOrderSubOrderIDStr = self.work_zone_Panel.orderManagmentPanel.data[8]
-        self.currentOrderSubOrderStateStr = self.work_zone_Panel.orderManagmentPanel.data[9]
+        self.currentOrderID=self.work_zone_Panel.manufactureManagementPanel.data[0]
+        self.currentOrderSubOrderIDStr = self.work_zone_Panel.manufactureManagementPanel.data[8]
+        self.currentOrderSubOrderStateStr = self.work_zone_Panel.manufactureManagementPanel.data[9]
         self.ReCreateOrderInfoPanel()
-        self.work_zone_Panel.orderManagmentPanel.ReCreateOrderDetailTree()
+        self.work_zone_Panel.manufactureManagementPanel.ReCreateOrderDetailTree()
 
     def OnPackageBTN(self,event):
         obj = event.GetEventObject()
@@ -707,7 +741,7 @@ class MainPanel(wx.Panel):
         _,dbNameList = GetPackageListFromDB(self.log,WHICHDB)
         if dbName not in dbNameList:
             CreatePackageSheetForOrder(self.log, WHICHDB, dbName)
-        dlg = PackageDialog(self, self.log, self.work_zone_Panel.orderManagmentPanel.data,suborderNumber)
+        dlg = PackageDialog(self, self.log, self.work_zone_Panel.manufactureManagementPanel.data, suborderNumber)
         dlg.CenterOnScreen()
         if dlg.ShowModal() == wx.ID_OK:
             pass
@@ -717,7 +751,7 @@ class MainPanel(wx.Panel):
         obj = event.GetEventObject()
         name = obj.GetName()
         suborderNumber = name[-1]
-        dlg = ProductionScheduleDialog(self, self.log, self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
+        dlg = ProductionScheduleDialog(self, self.log, self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
         dlg.CenterOnScreen()
         if dlg.ShowModal() == wx.ID_OK:
             pass
@@ -734,54 +768,54 @@ class MainPanel(wx.Panel):
                                )
         if dlg.ShowModal()==wx.ID_OK:
             dlg.Destroy()
-            self.productionSchedule = ProductionScheduleAlgorithm(self.log, self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
+            self.productionSchedule = ProductionScheduleAlgorithm(self.log, self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
             if self.productionSchedule.wrongNumber==0:
                 _, self.pageRowNum = GetPropertySchedulePageRowNumber(self.log, 1)
-                if self.work_zone_Panel.orderManagmentPanel.data[0] == None:
-                    dirName = scheduleDir + '%s/' % self.work_zone_Panel.orderManagmentPanel.data[0]
+                if self.work_zone_Panel.manufactureManagementPanel.data[0] == None:
+                    dirName = scheduleDir + '%s/' % self.work_zone_Panel.manufactureManagementPanel.data[0]
                 else:
-                    dirName = scheduleDir + '%s/' % self.work_zone_Panel.orderManagmentPanel.data[0] + '%s/' % (int(suborderNumber))
+                    dirName = scheduleDir + '%s/' % self.work_zone_Panel.manufactureManagementPanel.data[0] + '%s/' % (int(suborderNumber))
                 if not os.path.exists(dirName):
                     os.makedirs(dirName)
-                filename = scheduleDir + '%s/%s/CutSchedule.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
-                MakeCutScheduleTemplate(self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber, filename,
-                                        self.productionSchedule.cuttingScheduleList,PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
-                filename = scheduleDir + '%s/%s/VerticalCutSchedule.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
-                MakeHorizontalCutScheduleTemplate(self.work_zone_Panel.orderManagmentPanel.data[0], suborderNumber, filename,
-                                                  self.productionSchedule.horizontalCuttingScheduleList,PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
-                filename = scheduleDir + '%s/%s/MaterialSchedule.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
-                MakeMaterialScheduleTemplate(self.work_zone_Panel.orderManagmentPanel.data[0], suborderNumber, filename,
+                filename = scheduleDir + '%s/%s/CutSchedule.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
+                MakeCutScheduleTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
+                                        self.productionSchedule.cuttingScheduleList, PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
+                filename = scheduleDir + '%s/%s/VerticalCutSchedule.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
+                MakeHorizontalCutScheduleTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
+                                                  self.productionSchedule.horizontalCuttingScheduleList, PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
+                filename = scheduleDir + '%s/%s/MaterialSchedule.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
+                MakeMaterialScheduleTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
                                              self.productionSchedule.horizontalCuttingScheduleList,
                                              self.productionSchedule.cuttingScheduleList,
                                              PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
-                filename = scheduleDir + '%s/%s/BendingSchedule.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
-                MakeBendingScheduleTemplate(self.work_zone_Panel.orderManagmentPanel.data[0], suborderNumber, filename,
-                                             self.productionSchedule.bendingScheduleList,PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
-                filename = scheduleDir + '%s/%s/S2FormingSchedule.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
-                MakeS2FormingScheduleTemplate(self.work_zone_Panel.orderManagmentPanel.data[0], suborderNumber, filename,
-                                             self.productionSchedule.S2FormingScheduleList,PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
-                filename = scheduleDir + '%s/%s/CeilingFormingSchedule.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
-                MakeCeilingFormingScheduleTemplate(self.work_zone_Panel.orderManagmentPanel.data[0], suborderNumber, filename,
-                                             self.productionSchedule.ceilingFormingScheduleList,PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
-                filename = scheduleDir + '%s/%s/CeilingFormingSchedule.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
-                MakeCeilingFormingScheduleTemplate(self.work_zone_Panel.orderManagmentPanel.data[0], suborderNumber, filename,
-                                             self.productionSchedule.ceilingFormingScheduleList,PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
-                filename = scheduleDir + '%s/%s/PRPressSchedule.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
-                MakePRPressScheduleTemplate(self.work_zone_Panel.orderManagmentPanel.data[0], suborderNumber, filename,
-                                             self.productionSchedule.prScheduleList,PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
-                filename = scheduleDir + '%s/%s/VacuumSchedule.pdf' % (self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
-                MakeVacuumScheduleTemplate(self.work_zone_Panel.orderManagmentPanel.data[0], suborderNumber, filename,
-                                             self.productionSchedule.vacuumScheduleList,PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
+                filename = scheduleDir + '%s/%s/BendingSchedule.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
+                MakeBendingScheduleTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
+                                            self.productionSchedule.bendingScheduleList, PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
+                filename = scheduleDir + '%s/%s/S2FormingSchedule.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
+                MakeS2FormingScheduleTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
+                                              self.productionSchedule.S2FormingScheduleList, PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
+                filename = scheduleDir + '%s/%s/CeilingFormingSchedule.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
+                MakeCeilingFormingScheduleTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
+                                                   self.productionSchedule.ceilingFormingScheduleList, PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
+                filename = scheduleDir + '%s/%s/CeilingFormingSchedule.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
+                MakeCeilingFormingScheduleTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
+                                                   self.productionSchedule.ceilingFormingScheduleList, PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
+                filename = scheduleDir + '%s/%s/PRPressSchedule.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
+                MakePRPressScheduleTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
+                                            self.productionSchedule.prScheduleList, PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
+                filename = scheduleDir + '%s/%s/VacuumSchedule.pdf' % (self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
+                MakeVacuumScheduleTemplate(self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber, filename,
+                                           self.productionSchedule.vacuumScheduleList, PAGEROWNUMBER=self.pageRowNum)  # 这些数据在ProductionScheduleAlgorithm.py文件中
                 self.subOrderStateList[int(suborderNumber)-1] = "已排产"  # 这个之前应该增加一个数据库更新操作
                 suborderState = str(self.subOrderStateList[0])
                 for state in self.subOrderStateList[1:]:
                     suborderState += ','
                     suborderState += state
-                self.work_zone_Panel.orderManagmentPanel.data[9]=suborderState
-                UpdateOrderStateInDB(self.log,1,self.work_zone_Panel.orderManagmentPanel.data[0],suborderState)
-                self.work_zone_Panel.orderManagmentPanel.orderGrid.ReCreate()
+                self.work_zone_Panel.manufactureManagementPanel.data[9]=suborderState
+                UpdateOrderStateInDB(self.log, 1, self.work_zone_Panel.manufactureManagementPanel.data[0], suborderState)
+                self.work_zone_Panel.manufactureManagementPanel.orderGrid.ReCreate()
                 self.ReCreateOrderInfoPanel()
-                dlg = ProductionScheduleDialog(self,self.log, self.work_zone_Panel.orderManagmentPanel.data[0],suborderNumber)
+                dlg = ProductionScheduleDialog(self, self.log, self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
                 dlg.CenterOnScreen()
                 if dlg.ShowModal()==wx.ID_OK:
                     pass
@@ -792,9 +826,14 @@ class MainPanel(wx.Panel):
                 wx.MessageBox("缺少如下%s张图纸：\r\n%s,\r\n  无法完成排产，请补全图纸后再试！" % (self.productionSchedule.wrongNumber, str(self.productionSchedule.missList)), "提示信息")
         else:
             dlg.Destroy()
-    # self.ReCreateOrderInfoPanel()
 
-    def OnNewOrderBTN(self,event):
+    def OnCreateNewOrderBTN(self,event):
+        dlg = CreateNewOrderDialog(self,self.log)
+        dlg.CenterOnScreen()
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def OnImportOrderDataBTN(self, event):
         from DBOperation import GetTableListFromDB
         _,dbNameList = GetTableListFromDB(None,1)
         if len(dbNameList)>0:
@@ -841,8 +880,8 @@ class MainPanel(wx.Panel):
                         # InsertNewOrderRecord(self.log, 1, self.newOrderID)
                         # CreateNewOrderSheet(self.log, 1, self.newOrderID)
                         _, boardList = GetAllOrderList(self.log, 1)
-                        self.work_zone_Panel.orderManagmentPanel.dataArray = np.array(boardList)
-                        self.work_zone_Panel.orderManagmentPanel.orderGrid.ReCreate()
+                        self.work_zone_Panel.manufactureManagementPanel.dataArray = np.array(boardList)
+                        self.work_zone_Panel.manufactureManagementPanel.orderGrid.ReCreate()
                     dlg.Destroy()
             else:
                 dlg.Destroy()
@@ -869,12 +908,20 @@ class MainPanel(wx.Panel):
             self._pnl.Collapse(item)
         event.Skip()
 
-
     def OnNoteBookPageChanged(self,event):
         obj = event.GetEventObject()
         if obj.GetName()=='MainNoteBook':
             page = obj.GetSelection()
-            Title = ["","基材操作面板","图纸操作面板","订单操作面板","标签/胶水单操作面板","货盘单操作面板"]
+            pageName = self.work_zone_Panel.notebook.GetPageText(page)
+            if pageName=="订单管理":
+                self.work_zone_Panel.orderManagementPanel.ReCreate()
+            elif pageName=="图纸管理":
+                self.work_zone_Panel.bluePrintManagementPanel.ReCreate()
+            elif pageName=="生产管理":
+                self.work_zone_Panel.manufactureManagementPanel.ReCreate()
+            elif pageName=="基材管理":
+                self.work_zone_Panel.boardManagementPanel.ReCreate()
+            Title = ["","订单操作面板","基材操作面板","图纸操作面板","生产管理面板"]
             for i in range(0, self._pnl.GetCount()):
                 item = self._pnl.GetFoldPanel(i)
                 self._pnl.Collapse(item)
@@ -888,6 +935,7 @@ class WorkZonePanel(wx.Panel):
     def __init__(self, parent, master, log):
         wx.Panel.__init__(self, parent, -1)
         self.Freeze()
+        self.parent = parent
         self.master = master
         self.log = log
         self.notebook = wx.Notebook(self, -1, size=(21, 21), style=
@@ -913,19 +961,25 @@ class WorkZonePanel(wx.Panel):
         self.SetSizer(hbox)
         self.systemIntroductionPanel = SystemIntroductionPanel(self.notebook)
         self.notebook.AddPage(self.systemIntroductionPanel,"系统介绍")
+        if self.master.operatorCharacter in ["技术员","下单员"]:
+            self.orderManagementPanel = OrderManagementPanel(self.notebook, self, self.log)
+        self.notebook.AddPage(self.orderManagementPanel, "订单管理")
         if self.master.operatorCharacter in ["技术员","管理员"]:
-            self.boardManagmentPanel = BoardManagementPanel(self.notebook,self,self.log)
-            self.notebook.AddPage(self.boardManagmentPanel, "基材管理")
+            self.boardManagementPanel = BoardManagementPanel(self.notebook, self, self.log)
+            self.notebook.AddPage(self.boardManagementPanel, "基材管理")
         if self.master.operatorCharacter in ["技术员","管理员"]:
-            self.bluePrintManagmentPanel = BluePrintManagementPanel(self.notebook,self,self.log)
-            self.notebook.AddPage(self.bluePrintManagmentPanel, "图纸管理")
-        if self.master.operatorCharacter in ["技术员","管理员","下单员"]:
-            self.orderManagmentPanel = OrderManagementPanel(self.notebook,self.master, self.log)
-            self.notebook.AddPage(self.orderManagmentPanel, "订单管理")
-        if self.master.operatorCharacter == '下单员':
-            self.notebook.SetSelection(1)
-        elif self.master.operatorCharacter in ["技术员","管理员"]:
-            self.notebook.SetSelection(2)
-        self.notebook.Thaw()
+            self.bluePrintManagementPanel = BluePrintManagementPanel(self.notebook, self, self.log)
+            self.notebook.AddPage(self.bluePrintManagementPanel, "图纸管理")
+        if self.master.operatorCharacter in ["技术员","管理员"]:
+            self.manufactureManagementPanel = ManufactureManagementPanel(self.notebook, self.master, self.log)
+            self.notebook.AddPage(self.manufactureManagementPanel, "生产管理")
+        self.orderManagementPanel.ReCreate()
+        self.notebook.SetSelection(1)
+        # if self.master.operatorCharacter == '下单员':
+        #     self.notebook.SetSelection(1)
+        # elif self.master.operatorCharacter in ["技术员","管理员"]:
+        #     self.manufactureManagementPanel.ReCreate()
+        #     self.notebook.SetSelection(4)
         self.Thaw()
+        self.notebook.Thaw()
 

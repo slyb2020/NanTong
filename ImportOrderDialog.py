@@ -157,8 +157,8 @@ class ImportOrderFromExcelDialog(wx.Dialog):
                 subOrderIdStr += str(int(i))
                 subOrderStateStr += ',接单'
             UpdateOrderRecord(self.parent.log,1,self.newOrderID,subOrderIdStr,subOrderStateStr)
-            self.parent.work_zone_Panel.orderManagmentPanel.data[8] = subOrderIdStr
-            self.parent.work_zone_Panel.orderManagmentPanel.data[9] = subOrderStateStr
+            self.parent.work_zone_Panel.manufactureManagementPanel.data[8] = subOrderIdStr
+            self.parent.work_zone_Panel.manufactureManagementPanel.data[9] = subOrderStateStr
         else:
             InsertNewOrderRecord(self.parent.log,1,self.newOrderID,self.newOrderName,self.subOrderIDList)
             CreateNewOrderSheet(self.parent.log,1,self.newOrderID)

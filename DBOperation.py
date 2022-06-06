@@ -1,9 +1,12 @@
+import pymysql
+
 from ID_DEFINE import *
 import pymysql as MySQLdb
 import time
 import datetime
 import json
-
+import base64
+from TransformImage import TransformBase64
 
 def GetEnterpriseInfo(log, whichDB):
     try:
@@ -477,7 +480,7 @@ def UpdatePropertyInDB(log,whichDB,propertyDic):
         return -1, []
     cursor = db.cursor()
     print("propertyDic=",propertyDic)
-    sql = "UPDATE 系统参数 SET `启动纵切最小板材数`='%s', `任务单每页行数`='%s', `墙角板型号列表`='%s' " %(propertyDic["启动纵切最小板材数"],propertyDic["任务单每页行数"],json.dumps(propertyDic["墙角板型号列表"]))
+    sql = "UPDATE 系统参数 SET `启动纵切最小板材数`='%s', `任务单每页行数`='%s', `墙角板型号列表`='%s' " %(propertyDic["启动纵切最小板材数"],propertyDic["任务单每页行数"],json.dumps(propertyDic["墙角板型号列表"],ensure_ascii=False))
     # sql = "INSERT INTO 图纸信息(`图纸号`,`面板增量`,`中板增量`,`背板增量`,`剪板505`,`成型405`,`成型409`,`成型406`,`折弯652`," \
     #       "`热压100`,`热压306`,`冲铣`,`图纸状态`,`创建人`,`中板`,`打包9000`,`图纸大类`,`创建时间`,`备注`)" \
     #       "VALUES ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"\
@@ -803,7 +806,7 @@ def InsertPackageBoxInfo(log,whichDB,orderID,suborderID,boxInfo):
                     Data[i][j][k][-3]="托盘%s"%str(index)
                     Data[i][j][k][-1]=""
 
-        sql = "UPDATE `%s` SET `货盘编号`='托盘%s', `货盘数据`='%s' where `Index`=%s " %(str(orderID),str(index),json.dumps(Data),index)
+        sql = "UPDATE `%s` SET `货盘编号`='托盘%s', `货盘数据`='%s' where `Index`=%s " %(str(orderID),str(index),json.dumps(Data,ensure_ascii=False),index)
         try:
             cursor.execute(sql)
             db.commit()  # 必须有，没有的话插入语句不会执行
@@ -824,7 +827,7 @@ def UpdateSpecificPackageBoxInfo(log,whichDB,orderID,index,boxLength,boxWidth,bo
     cursor = db.cursor()
     square="%.2f"%(square)
     sql ="""UPDATE `%s` SET `货盘长`=%s, `货盘宽`=%s, `货盘高`=%s, `货盘层数`=%s ,`货盘数据`='%s', `货盘总重`='%s', `货盘总面板数`='%s', `货盘总面积`='%s'  where `Index`=%s""" \
-          %(str(orderID),boxLength,boxWidth,boxHeight,boxLayer,json.dumps(data),str(weight),str(amount),square,index)
+          %(str(orderID),boxLength,boxWidth,boxHeight,boxLayer,json.dumps(data,ensure_ascii=False),str(weight),str(amount),square,index)
     try:
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
@@ -1509,3 +1512,71 @@ def InsertPanelDetailIntoPackageDB(log, whichDB, orderTabelName, orderDataList):
             db.rollback()
             print("erro package new")
     db.close()
+
+def InsertNewOrder(log,whichDB,propertyDic):
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    print("propertyDic=",propertyDic)
+    if propertyDic["1.图纸文件"]!='':
+        data = TransformBase64(propertyDic["1.图纸文件"])
+    else:
+        data = ""
+    # sql = "UPDATE 系统参数 SET `启动纵切最小板材数`='%s', `任务单每页行数`='%s', `墙角板型号列表`='%s' " %(propertyDic["启动纵切最小板材数"],propertyDic["任务单每页行数"],json.dumps(propertyDic["墙角板型号列表"]))
+    print(data)
+    # sql = "INSERT INTO `订单信息` (`订单名称`,`客户原始技术图纸名`,`客户原始技术图纸`) VALUES ('%s', '%s', %s)"%(propertyDic["1.订单名称"], json.dumps(propertyDic["1.图纸文件"],ensure_ascii=False), MySQLdb.Binary(img))
+    sql = "INSERT INTO `订单信息` (`订单名称`,`客户原始技术图纸名`,`图`) VALUES ('%s', '%s', '%s')"%(propertyDic["1.订单名称"], json.dumps(propertyDic["1.图纸文件"],ensure_ascii=False), data)
+    # sql = """INSERT INTO `订单信息` (`图`) VALUES (%s)""" %(img)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("error Insert")
+        db.rollback()
+    #
+    # sql = """SELECT `Index` from `%s` where `货盘编号`='%s'""" % (str(orderID), '待定中')
+    # cursor.execute(sql)
+    # index = cursor.fetchone()[0]  # 获得索引值
+    # Data=data[-1]
+    # for i,layer in enumerate(Data):
+    #     for j,row in enumerate(layer):
+    #         for k,col in enumerate(row):
+    #             Data[i][j][k][-3]="托盘%s"%str(index)
+    #             Data[i][j][k][-1]=""
+    #
+    # sql = "UPDATE `%s` SET `货盘编号`='托盘%s', `货盘数据`='%s' where `Index`=%s " %(str(orderID),str(index),json.dumps(Data),index)
+    # try:
+    #     cursor.execute(sql)
+    #     db.commit()  # 必须有，没有的话插入语句不会执行
+    # except:
+    #     print("error1")
+    #     db.rollback()
+    db.close()
+
+def GetPDF(log,whichDB):
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    # sql = "UPDATE 系统参数 SET `启动纵切最小板材数`='%s', `任务单每页行数`='%s', `墙角板型号列表`='%s' " %(propertyDic["启动纵切最小板材数"],propertyDic["任务单每页行数"],json.dumps(propertyDic["墙角板型号列表"]))
+    # sql = "INSERT INTO `订单信息` (`订单名称`,`客户原始技术图纸名`,`客户原始技术图纸`) VALUES ('%s', '%s', %s)"%(propertyDic["1.订单名称"], json.dumps(propertyDic["1.图纸文件"],ensure_ascii=False), MySQLdb.Binary(img))
+    # sql = "INSERT INTO `订单信息` (`订单名称`,`客户原始技术图纸名`,`图`) VALUES ('%s', '%s', '%s')"%(propertyDic["1.订单名称"], json.dumps(propertyDic["1.图纸文件"],ensure_ascii=False), data)
+    # sql = """INSERT INTO `订单信息` (`图`) VALUES (%s)""" %(img)
+    sql = "select `图`  from `订单信息` where `Index`=%s" % (70)
+    cursor.execute(sql)
+    record=cursor.fetchone()
+    db.close()
+    with open('TJDZ_1.pdf', 'wb') as file:
+        image = base64.b64decode(record[0])  # 解码
+        file.write(image)

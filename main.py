@@ -9,7 +9,7 @@ from PasswordDialog import PasswordDialog
 from DBOperation import GetStaffInfoWithPassword, GetEnterpriseInfo
 from SetupPropertyDialog import SetupPropertyDialog
 
-VERSION_STRING = "20220605A"
+VERSION_STRING = "20220313A"
 
 
 class FlatMenuFrame(wx.Frame):

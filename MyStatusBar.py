@@ -38,9 +38,9 @@ class MyStatusBar(wx.StatusBar):
 
     def Notify(self):
         self.timer_count += 1
-        t = time.localtime(time.time())
-        st = time.strftime("%Y-%m-%d %H:%M:%S", t)
         try:
+            t = time.localtime(time.time())
+            st = time.strftime("%Y-%m-%d %H:%M:%S", t)
             self.gauge.Pulse()
             self.SetStatusText(st, 3)
         except:

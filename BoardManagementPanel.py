@@ -1,7 +1,7 @@
 import wx
 import wx.grid as gridlib
 from DBOperation import GetAllBoardList, GetRGBWithRalID,GetAllColor
-from OrderManagementPanel import OrderGrid
+from ManufactureManagementPanel import OrderGrid
 import numpy as np
 import images
 import wx.lib.scrolledpanel as scrolled
@@ -434,9 +434,10 @@ class SpecificBoardManagementPanel(wx.Panel):
 class BoardManagementPanel(wx.Panel):
     def __init__(self, parent, master, log):
         wx.Panel.__init__(self, parent, -1)
-        self.Freeze()
         self.master = master
         self.log = log
+    def ReCreate(self):
+        self.Freeze()
         self.notebook = wx.Notebook(self, -1, size=(21, 21), style=
         # wx.BK_DEFAULT
         # wx.BK_TOP
@@ -469,4 +470,5 @@ class BoardManagementPanel(wx.Panel):
         self.notebook.AddPage(self.sparyBoardManagementPanel, "喷涂板管理")
 
         self.notebook.SetSelection(0)
+        self.Layout()
         self.Thaw()
