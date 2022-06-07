@@ -438,6 +438,7 @@ class BoardManagementPanel(wx.Panel):
         self.log = log
     def ReCreate(self):
         self.Freeze()
+        self.DestroyChildren()
         self.notebook = wx.Notebook(self, -1, size=(21, 21), style=
         # wx.BK_DEFAULT
         # wx.BK_TOP

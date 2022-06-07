@@ -380,6 +380,13 @@ class MainPanel(wx.Panel):
                 vbox.Add(self.newOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
             # vbox.Add(self.editOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
                 vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+            if self.parent.operatorCharacter in ["下单员","技术员","管理员"]:
+                value = "在产订单"
+                if self.parent.operatorCharacter == "下单员":
+                    value = "草稿订单"
+                self.orderTypeCOMBO = wx.ComboBox(panel,value=value,choices=["草稿订单","在产订单","完工订单","废弃订单"])
+                self.orderTypeCOMBO.Bind(wx.EVT_COMBOBOX,self.OnOrderTypeCOMBOChanged)
+                vbox.Add(self.orderTypeCOMBO,0,wx.EXPAND)
             self.orderInfoPanel=wx.Panel(panel,size=(-1,500))
             vbox.Add(self.orderInfoPanel,1,wx.EXPAND)
             panel.SetSizer(vbox)
@@ -390,7 +397,7 @@ class MainPanel(wx.Panel):
             else:
                 item.Collapse()
 
-        if self.parent.operatorCharacter in ["技术员","下单员","管理员"]:
+        if self.parent.operatorCharacter in ["技术员","管理员"]:
             item = self._pnl.AddFoldPanel("生产管理面板", collapsed=False,
                                           foldIcons=Images)
             item.SetLabel("生产管理面板")
@@ -470,6 +477,10 @@ class MainPanel(wx.Panel):
         #     else:
         #         item.Collapse()
         self._leftWindow1.Thaw()
+    def OnOrderTypeCOMBOChanged(self,event):
+        type = self.orderTypeCOMBO.GetValue()[:2]
+        self.work_zone_Panel.orderManagementPanel.type = type
+        self.work_zone_Panel.orderManagementPanel.ReCreate()
 
     def ReCreateOrderInfoPanel(self):
         self.orderInfoPanel.DestroyChildren()
@@ -961,8 +972,11 @@ class WorkZonePanel(wx.Panel):
         self.SetSizer(hbox)
         self.systemIntroductionPanel = SystemIntroductionPanel(self.notebook)
         self.notebook.AddPage(self.systemIntroductionPanel,"系统介绍")
-        if self.master.operatorCharacter in ["技术员","下单员"]:
-            self.orderManagementPanel = OrderManagementPanel(self.notebook, self, self.log)
+        if self.master.operatorCharacter in ["技术员","下单员","管理员","财务人员","采购员"]:
+            if self.master.operatorCharacter == "技术员":
+                self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,type="在产")
+            else:
+                self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log)
         self.notebook.AddPage(self.orderManagementPanel, "订单管理")
         if self.master.operatorCharacter in ["技术员","管理员"]:
             self.boardManagementPanel = BoardManagementPanel(self.notebook, self, self.log)

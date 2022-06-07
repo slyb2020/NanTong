@@ -63,6 +63,23 @@ def GetStaffInfoWithPassword(log, whichDB, psw):
     db.close()
     return 0, temp
 
+def GetStaffInfoWithID(log, whichDB, ID):
+    try:
+        # db = MySQLdb.connect(host="127.0.0.1", user="root", passwd='', db="智能生产管理系统_调试",charset='utf8')
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = """SELECT `处`,`科`,`工位名`,`姓名`,`员工编号`,`工作状态` from `info_staff` WHERE `员工编号`='%s'"""%(ID)
+    cursor.execute(sql)
+    temp = cursor.fetchone()  # 获得压条信息
+    db.close()
+    return 0, temp
+
 def GetAllOrderList(log, whichDB):
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
@@ -73,7 +90,30 @@ def GetAllOrderList(log, whichDB):
             log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
-    sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态`,`子订单编号`,`子订单状态` from `订单信息` """
+    sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态`,`子订单编号`,`子订单状态`,`技术审核状态`,`财务审核状态`,`采购审核状态`,`技术审核员ID`,`技术审核时间`,`技术审核意见` from `订单信息` """
+    cursor.execute(sql)
+    temp = cursor.fetchall()  # 获得压条信息
+    db.close()
+    return 0, temp
+
+def GetAllOrderAllInfo(log, whichDB,type):
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    if type == "草稿":
+        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`投标时间`,`下单时间`,`下单员ID`,`状态`,`技术审核状态`,`采购审核状态`,`财务审核状态`,`经理审核状态` from `订单信息` where `状态`='%s' """%type
+    elif type == "在产":
+        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态` from `订单信息` where `状态`='%s' """%type
+    elif type == "完工":
+        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态` from `订单信息` where `状态`='%s' """%type
+    elif type == "废弃":
+        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`投标时间`,`下单时间`,`下单员ID`,`状态`,`技术审核状态`,`采购审核状态`,`财务审核状态`,`经理审核状态` from `订单信息` where `状态`='%s' """%type
     cursor.execute(sql)
     temp = cursor.fetchall()  # 获得压条信息
     db.close()
@@ -479,7 +519,6 @@ def UpdatePropertyInDB(log,whichDB,propertyDic):
             log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
-    print("propertyDic=",propertyDic)
     sql = "UPDATE 系统参数 SET `启动纵切最小板材数`='%s', `任务单每页行数`='%s', `墙角板型号列表`='%s' " %(propertyDic["启动纵切最小板材数"],propertyDic["任务单每页行数"],json.dumps(propertyDic["墙角板型号列表"],ensure_ascii=False))
     # sql = "INSERT INTO 图纸信息(`图纸号`,`面板增量`,`中板增量`,`背板增量`,`剪板505`,`成型405`,`成型409`,`成型406`,`折弯652`," \
     #       "`热压100`,`热压306`,`冲铣`,`图纸状态`,`创建人`,`中板`,`打包9000`,`图纸大类`,`创建时间`,`备注`)" \
@@ -993,7 +1032,6 @@ def GetCurrentPackageData(log,whichDB,orderID,suborderID,deck,zone,room=None):
             log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
-    print("room=",room)
     if room==None:
         sql = """SELECT `货盘编号`, `货盘长`, `货盘宽`, `货盘高`, `货盘层数`, `货盘总重`, `货盘总面板数`, `货盘总面积`,  
         `货盘所属子订单`,`货盘所属甲板`, `货盘所属区域`, `货盘所属房间`, `货盘打包方式`, `货盘类别`, `货盘数据` from `%s` 
@@ -1134,7 +1172,6 @@ def ClearSeperatePanelBoxNumberWithIndex(log, whichDB, orderID, suborderID, inde
 #
 def UpdateSubOrderPackageState(log,whichDB,orderID,subOrderId,state):
     name="p%s-%03d"%(str(orderID),int(subOrderId))
-    print("state=",state)
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % orderDBName[whichDB], charset='utf8')
@@ -1155,7 +1192,6 @@ def UpdateSubOrderPackageState(log,whichDB,orderID,subOrderId,state):
 
 def UpdateSubOrderPackageStateAndClearPackageNumber(log,whichDB,orderID,subOrderId,state,packageNum):
     name="p%s-%03d"%(str(orderID),int(subOrderId))
-    print("state=",state)
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % orderDBName[whichDB], charset='utf8')
@@ -1513,7 +1549,7 @@ def InsertPanelDetailIntoPackageDB(log, whichDB, orderTabelName, orderDataList):
             print("erro package new")
     db.close()
 
-def InsertNewOrder(log,whichDB,propertyDic):
+def InsertNewOrder(log,whichDB,dic,operatorID):
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
@@ -1523,40 +1559,65 @@ def InsertNewOrder(log,whichDB,propertyDic):
             log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
-    print("propertyDic=",propertyDic)
-    if propertyDic["1.图纸文件"]!='':
-        data = TransformBase64(propertyDic["1.图纸文件"])
-    else:
-        data = ""
     # sql = "UPDATE 系统参数 SET `启动纵切最小板材数`='%s', `任务单每页行数`='%s', `墙角板型号列表`='%s' " %(propertyDic["启动纵切最小板材数"],propertyDic["任务单每页行数"],json.dumps(propertyDic["墙角板型号列表"]))
-    print(data)
-    # sql = "INSERT INTO `订单信息` (`订单名称`,`客户原始技术图纸名`,`客户原始技术图纸`) VALUES ('%s', '%s', %s)"%(propertyDic["1.订单名称"], json.dumps(propertyDic["1.图纸文件"],ensure_ascii=False), MySQLdb.Binary(img))
-    sql = "INSERT INTO `订单信息` (`订单名称`,`客户原始技术图纸名`,`图`) VALUES ('%s', '%s', '%s')"%(propertyDic["1.订单名称"], json.dumps(propertyDic["1.图纸文件"],ensure_ascii=False), data)
-    # sql = """INSERT INTO `订单信息` (`图`) VALUES (%s)""" %(img)
+    sql = "INSERT INTO `订单信息` (`下单员ID`,`备注`) VALUES ('%s','%s')"%(operatorID,operatorID)
     try:
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
         print("error Insert")
         db.rollback()
-    #
-    # sql = """SELECT `Index` from `%s` where `货盘编号`='%s'""" % (str(orderID), '待定中')
-    # cursor.execute(sql)
-    # index = cursor.fetchone()[0]  # 获得索引值
-    # Data=data[-1]
-    # for i,layer in enumerate(Data):
-    #     for j,row in enumerate(layer):
-    #         for k,col in enumerate(row):
-    #             Data[i][j][k][-3]="托盘%s"%str(index)
-    #             Data[i][j][k][-1]=""
-    #
-    # sql = "UPDATE `%s` SET `货盘编号`='托盘%s', `货盘数据`='%s' where `Index`=%s " %(str(orderID),str(index),json.dumps(Data),index)
-    # try:
-    #     cursor.execute(sql)
-    #     db.commit()  # 必须有，没有的话插入语句不会执行
-    # except:
-    #     print("error1")
-    #     db.rollback()
+    sql = """SELECT `Index` from `订单信息` where `备注`= '%s' and `订单编号`= 0"""%(operatorID)
+    cursor.execute(sql)
+    id = cursor.fetchone()[0]
+    sql = "UPDATE `订单信息` SET `订单编号`= %s, `备注`='' where `Index`=%s " %(int(id),id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("error1")
+        db.rollback()
+    sectionNameDic={
+                       "订单名称":"1.订单名称 *",
+                       "客户名称":"2.客户单位名称",
+                       "客户公司信息":"3.客户公司信息",
+                       "联系人":"4.联系人姓名",
+                       "联系人电话":"5.联系人电话",
+                       "联系人邮箱":"6.联系人email",
+                       "投标方式":"2.投标方式",
+                       "投标格式":"3.投标格式",
+                       "下单时间":"7.下单日期",
+                       "投标时间":"1.投标日期"
+                    }
+    for i,sectionName in enumerate(sectionNameDic.keys()):
+        if sectionName == "投标方式":
+            value = BIDMODE[int(dic[sectionNameDic[sectionName]])]
+        elif sectionName == "投标格式":
+            value = BIDMODE[int(dic[sectionNameDic[sectionName]])]
+        elif sectionName in ["下单时间","投标时间"]:
+            value = dic[sectionNameDic[sectionName]].FormatISODate()
+        else:
+            value = dic[sectionNameDic[sectionName]]
+        sql = "UPDATE `订单信息` SET `%s`='%s' where `Index`=%s " %(sectionName,value,id)
+        try:
+            cursor.execute(sql)
+            db.commit()  # 必须有，没有的话插入语句不会执行
+        except:
+            print("error1")
+            db.rollback()
+
+    if dic["1.图纸文件 *"]!='':
+        data = TransformBase64(dic["1.图纸文件 *"])
+    else:
+        data = ""
+    # sql = "UPDATE `订单信息` SET `客户原始技术图纸名`= '%s,`图`= '%s' where `Index`= %s "%(json.dumps(dic["1.图纸文件 *"],ensure_ascii=False), data,id)
+    sql = "UPDATE `订单信息` SET `客户原始技术图纸名`= '%s',`图`= '%s' where `Index`= %s "%(json.dumps(dic["1.图纸文件 *"],ensure_ascii=False), data,id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("error1")
+        db.rollback()
     db.close()
 
 def GetPDF(log,whichDB):

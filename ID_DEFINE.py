@@ -26,10 +26,14 @@ dbUserName = ['root','root']
 dbPassword = ['','']
 dbName = ['智能生产管理系统','智能生产管理系统_调试']
 orderDBName = ['订单数据库','订单数据库_调试']
-# boxDBName = ['货盘数据库','货盘数据库_调试']
-packageDBName = ['货盘数据库','货盘数据库']
+packageDBName = ['货盘数据库','货盘数据库_调试']
+orderCheckDBName = ['订单审核数据库','订单审核数据库_调试']
 orderDetailLabelList=['Index','订单号','子订单','甲板','区域','房间','图纸','面板代码','X面颜色','Y面颜色','高度','宽度','厚度','数量','Z面颜色','V面颜色','胶水单号']
 orderDetailColSizeList = [30,40,50,35,35,50,70,80,60,60,40,40,40,40,50,50,70,70]
+orderWorkingStateList = ['接单','排产','下料','加工','打包','发货']
+
+BIDMODE = ['wxPython Rules', 'wxPython Rocks', 'wxPython Is The Best']
+BIDMETHOD = ['离岸价', '到岸价']
 WALL = 0
 CEILING = 1
 CONSTRUCTION = 2

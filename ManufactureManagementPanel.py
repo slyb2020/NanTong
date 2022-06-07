@@ -290,6 +290,7 @@ class ManufactureManagementPanel(wx.Panel):
         self.log = log
     def ReCreate(self):
         self.Freeze()
+        self.DestroyChildren()
         self.busy = False
         self.showRange=[]
         self.colLabelValueList = ["订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]

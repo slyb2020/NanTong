@@ -325,7 +325,6 @@ class SampleMultiButtonEditor(wxpg.PGTextCtrlEditor):
     def CreateControls(self, propGrid, property, pos, sz):
         # Create and populate buttons-subwindow
         buttons = wxpg.PGMultiButton(propGrid, sz)
-
         # Add two regular buttons
         buttons.AddButton("...")
         buttons.AddButton("A")
@@ -339,7 +338,6 @@ class SampleMultiButtonEditor(wxpg.PGTextCtrlEditor):
                                    pos,
                                    buttons.GetPrimarySize())
         wnd = wnd.GetPrimary()
-
         # Finally, move buttons-subwindow to correct position and make sure
         # returned wxPGWindowList contains our custom button list.
         buttons.Finalize(propGrid, pos);

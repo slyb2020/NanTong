@@ -1,12 +1,15 @@
 import wx
 import wx.grid as gridlib
-from DBOperation import GetAllOrderList,GetOrderDetailRecord,InsertNewOrder,GetPDF
+from DBOperation import GetAllOrderAllInfo,GetAllOrderList,GetOrderDetailRecord,InsertNewOrder,GetStaffInfoWithID,GetPDF
 from OrderDetailTree import OrderDetailTree
 from ID_DEFINE import *
 import numpy as np
 import images
 import copy
 from SetupPropertyDialog import *
+import datetime
+from DateTimeConvert import *
+import json
 
 class OrderDetailGrid(gridlib.Grid): ##, mixins.GridAutoEditMixin):
     def __init__(self, parent, master, log):
@@ -166,7 +169,6 @@ class OrderDetailGrid(gridlib.Grid): ##, mixins.GridAutoEditMixin):
         self.SelectRow(row)
         if self.GetColLabelValue(col)=="图纸":
             bluePrintName = self.GetCellValue(row,col)
-            print(bluePrintName)
 
     def OnCellRightDClick(self, evt):
         evt.Skip()
@@ -245,7 +247,7 @@ class OrderGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
 
         for i, order in enumerate(self.master.dataArray):
             self.SetRowSize(i, 25)
-            for j, item in enumerate(order[:8]):#z最后一列位子订单列表，不再grid上显示
+            for j, item in enumerate(order):#z最后一列位子订单列表，不再grid上显示
                 # self.SetCellBackgroundColour(i,j,wx.Colour(250, 250, 250))
                 self.SetCellAlignment(i, j, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE_VERTICAL)
                 self.SetCellValue(i, j, str(item))
@@ -284,19 +286,55 @@ class OrderGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         evt.Skip()
 
 class OrderManagementPanel(wx.Panel):
-    def __init__(self, parent, master, log):
+    def __init__(self, parent, master, log,type="草稿"):
         wx.Panel.__init__(self, parent, -1)
         self.master = master
         self.log = log
+        self.type = type
 
     def ReCreate(self):
         self.Freeze()
+        self.DestroyChildren()
         self.busy = False
         self.showRange=[]
-        self.colLabelValueList = ["订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
-        self.colWidthList = [60, 65,50, 60, 85, 75, 60, 60]
+        # if self.parent.master.operatorCharacter=="下单员":
+        if self.type == "草稿":
+            self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术审核","采购审核","财务审核","经理审核"]
+            self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      60,       60,       60,       60]
+        elif self.type =="在产":
+            self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
+            self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
+        elif self.type =="完工":
+            self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
+            self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
+        elif self.type =="废弃":
+            self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术审核","采购审核","财务审核","经理审核"]
+            self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      60,       60,       60,       60]
         self.orderDetailData = []
-        _, orderList = GetAllOrderList(self.log, 1)
+        _, dataList = GetAllOrderAllInfo(self.log, WHICHDB,self.type)
+        orderList=[]
+        for record in dataList:#这个循环是吧要在grid中显示的数据排序，对其，内容规整好
+            record = list(record)
+            startDay = datetime.date.today()
+            temp = record[4].split('-')
+            endDay = datetime.date(year=int(temp[0]),month=int(temp[1]),day=int(temp[2]))
+            # endDay = wxdate2pydate(json.loads(record[4]))
+            # endDay = datetime.date.today()+datetime.timedelta(days=5)
+            record.insert(0,(endDay-startDay).days)
+            record[1]="%05d"%int(record[1])
+            if record[3]=="":
+                record[3]="暂无报价"
+            if record[4]=='0':
+                record[4]=""
+            _, staffInfo = GetStaffInfoWithID(self.log, WHICHDB, record[7])
+            record[7] = staffInfo[3]
+            if self.type in ["草稿","废弃"]:
+                record[9]="未审核" if record[9]=='N' else "审核通过"
+                record[10]="未审核" if record[10]=='N' else "审核通过"
+                record[11]="未审核" if record[11]=='N' else "审核通过"
+                record[12]="未审核" if record[12]=='N' else "审核通过"
+
+            orderList.append(record)
         self.dataArray = np.array(orderList)
         self.data = []
         self.orderIDSearch=''
@@ -304,7 +342,12 @@ class OrderManagementPanel(wx.Panel):
         self.productNameSearch=''
         self.operatorSearch=''
         hbox = wx.BoxSizer()
-        self.leftPanel = wx.Panel(self, size=(580, -1))
+        size=(1000,-1)
+        if self.type in ["草稿","废弃"]:
+            size=(920,-1)
+        elif self.type in ["在产","完工"]:
+            size=(710,-1)
+        self.leftPanel = wx.Panel(self, size=size)
         hbox.Add(self.leftPanel, 0, wx.EXPAND)
         self.rightPanel = wx.Panel(self, style=wx.BORDER_THEME)
         hbox.Add(self.rightPanel, 1, wx.EXPAND)
@@ -376,20 +419,53 @@ class OrderManagementPanel(wx.Panel):
         self.orderDetailTreePanel.SetSizer(vbox)
         self.orderDetailTreePanel.Layout()
 
+    def ReCreateTechCheckPanel(self):
+        self.orderTechCheckPanel.DestroyChildren()
+        hbox = wx.BoxSizer()
+        self.techCheckInfoPanel = TechCheckInfoPanel(self.orderTechCheckPanel, self.log, size=(300, 100))
+        hbox.Add(self.techCheckInfoPanel,0,wx.EXPAND)
+        self.orderTechCheckPanel.SetSizer(hbox)
+        self.orderTechCheckPanel.Layout()
+
+    def ReCreatePurchaseCheckPanel(self):
+        self.orderPurchaseCheckPanel.DestroyChildren()
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        self.orderPurchaseCheckPanel.SetSizer(vbox)
+        self.orderPurchaseCheckPanel.Layout()
+
+    def ReCreateFinancialCheckPanel(self):
+        self.orderFinancialCheckPanel.DestroyChildren()
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        self.orderFinancialCheckPanel.SetSizer(vbox)
+        self.orderFinancialCheckPanel.Layout()
+
+    def ReCreateManagerCheckPanel(self):
+        self.orderManagerCheckPanel.DestroyChildren()
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        self.orderManagerCheckPanel.SetSizer(vbox)
+        self.orderManagerCheckPanel.Layout()
+
     def OnCellLeftClick(self,event):
-        if self.busy == False:
-            row = event.GetRow()
-            self.orderGrid.SetSelectionMode(wx.grid.Grid.GridSelectRows)
-            self.orderGrid.SelectRow(row)
-            self.data=self.dataArray[row]
-            # self.ReCreateMiddlePanel(self.type, self.editState)
+        row = event.GetRow()
+        self.orderGrid.SetSelectionMode(wx.grid.Grid.GridSelectRows)
+        self.orderGrid.SelectRow(row)
+        if self.type == "草稿":
             self.ReCreateRightPanel()
-            _,self.orderDetailData = GetOrderDetailRecord(self.log,1,self.data[0])
-            if len(self.orderDetailData)==0:
-                self.treeStructure =[]
-            else:
-                self.treeStructure = self.TreeDataTransform()
-            self.ReCreateOrderDetailTree()
+            self.ReCreateTechCheckPanel()
+            self.ReCreatePurchaseCheckPanel()
+            self.ReCreateFinancialCheckPanel()
+            self.ReCreateManagerCheckPanel()
+        elif self.type in orderWorkingStateList:
+            if self.busy == False:
+                self.data=self.dataArray[row]
+                # self.ReCreateMiddlePanel(self.type, self.editState)
+                self.ReCreateRightPanel()
+                _,self.orderDetailData = GetOrderDetailRecord(self.log,1,self.data[0])
+                if len(self.orderDetailData)==0:
+                    self.treeStructure =[]
+                else:
+                    self.treeStructure = self.TreeDataTransform()
+                self.ReCreateOrderDetailTree()
         event.Skip()
 
     def TreeDataTransform(self):
@@ -454,18 +530,28 @@ class OrderManagementPanel(wx.Panel):
         hbox = wx.BoxSizer()
         hbox.Add(self.notebook, 1, wx.EXPAND)
         self.rightPanel.SetSizer(hbox)
-        self.orderDetailPanel = wx.Panel(self.notebook)
-        self.notebook.AddPage(self.orderDetailPanel,"订单详情")
-        self.orderExcelPanel = wx.Panel(self.notebook)
-        self.notebook.AddPage(self.orderExcelPanel,"订单原始Excel")
         self.rightPanel.Layout()
-        self.orderDetailTreePanel=wx.Panel(self.orderDetailPanel,size=(260,-1))
-        self.orderDetailGridPanel=wx.Panel(self.orderDetailPanel,size=(100,-1),style=wx.BORDER_THEME)
-        hbox = wx.BoxSizer()
-        hbox.Add(self.orderDetailTreePanel,0,wx.EXPAND)
-        hbox.Add(self.orderDetailGridPanel,1,wx.EXPAND)
-        self.orderDetailPanel.SetSizer(hbox)
-        self.orderDetailPanel.Layout()
+        if self.type in orderWorkingStateList:
+            self.orderDetailPanel = wx.Panel(self.notebook)
+            self.notebook.AddPage(self.orderDetailPanel, "订单详情")
+            self.orderExcelPanel = wx.Panel(self.notebook)
+            self.notebook.AddPage(self.orderExcelPanel, "订单原始Excel")
+            hbox = wx.BoxSizer()
+            self.orderDetailTreePanel=wx.Panel(self.orderDetailPanel,size=(260,-1))
+            self.orderDetailGridPanel=wx.Panel(self.orderDetailPanel,size=(100,-1),style=wx.BORDER_THEME)
+            hbox.Add(self.orderDetailTreePanel,0,wx.EXPAND)
+            hbox.Add(self.orderDetailGridPanel,1,wx.EXPAND)
+            self.orderDetailPanel.SetSizer(hbox)
+            self.orderDetailPanel.Layout()
+        elif self.type=="草稿":
+            self.orderTechCheckPanel = wx.Panel(self.notebook,size=(260,-1))
+            self.notebook.AddPage(self.orderTechCheckPanel, "技术审核")
+            self.orderPurchaseCheckPanel = wx.Panel(self.notebook,size=(260,-1))
+            self.notebook.AddPage(self.orderPurchaseCheckPanel, "采购审核")
+            self.orderFinancialCheckPanel = wx.Panel(self.notebook,size=(260,-1))
+            self.notebook.AddPage(self.orderFinancialCheckPanel, "财务审核")
+            self.orderManagerCheckPanel = wx.Panel(self.notebook,size=(260,-1))
+            self.notebook.AddPage(self.orderManagerCheckPanel, "经理审核")
 
     def ReCreteOrderDetailGridPanel(self):
         self.orderDetailGridPanel.Freeze()
@@ -536,6 +622,240 @@ class OrderManagementPanel(wx.Panel):
         self.orderStateSearchCtrl.SetValue('')
         self.ReSearch()
 
+class TechCheckInfoPanel(wx.Panel):
+    def __init__( self, parent, log ,size):
+        wx.Panel.__init__(self, parent, wx.ID_ANY,size=size)
+        self.log = log
+        self.panel = panel = wx.Panel(self, wx.ID_ANY)
+        topsizer = wx.BoxSizer(wx.VERTICAL)
+        self.pg = pg = wxpg.PropertyGridManager(panel,
+                        style=wxpg.PG_SPLITTER_AUTO_CENTER |
+                              wxpg.PG_AUTO_SORT |
+                              wxpg.PG_TOOLBAR)
+
+        pg.ExtraStyle |= wxpg.PG_EX_HELP_AS_TOOLTIPS
+        #
+        # pg.Bind( wxpg.EVT_PG_CHANGED, self.OnPropGridChange )
+        # pg.Bind( wxpg.EVT_PG_PAGE_CHANGED, self.OnPropGridPageChange )
+        # pg.Bind( wxpg.EVT_PG_SELECTED, self.OnPropGridSelect )
+        # pg.Bind( wxpg.EVT_PG_RIGHT_CLICK, self.OnPropGridRightClick )
+        if not getattr(sys, '_PropGridEditorsRegistered', False):
+            pg.RegisterEditor(TrivialPropertyEditor)
+            pg.RegisterEditor(SampleMultiButtonEditor)
+            pg.RegisterEditor(LargeImageEditor)
+            # ensure we only do it once
+            sys._PropGridEditorsRegistered = True
+
+        pg.AddPage( "订单部录入信息" )
+        pg.Append( wxpg.PropertyCategory("1 - 订单基本信息") )
+        pg.Append( wxpg.StringProperty("1.订单名称 *",value="") )
+        pg.Append( wxpg.StringProperty("2.客户单位名称",value="") )
+        pg.Append( wxpg.StringProperty("3.客户公司信息",value="") )
+        pg.Append( wxpg.StringProperty("4.联系人姓名",value="") )
+        pg.Append( wxpg.StringProperty("5.联系人电话",value="") )
+        pg.Append( wxpg.StringProperty("6.联系人email",value=""))
+        pg.Append( wxpg.DateProperty("7.下单日期",value=wx.DateTime.Now()) )
+
+        pg.Append( wxpg.PropertyCategory("2 - 询价文件") )
+
+        pg.Append( wxpg.DateProperty("1.投标日期",value=pydate2wxdate(datetime.date.today()+datetime.timedelta(days=7))) )
+        pg.Append( wxpg.EnumProperty("2.投标方式","2.投标方式",
+                                     BIDMODE,
+                                     [0,1,2],
+                                     0) )
+        pg.Append( wxpg.EnumProperty("3.投标格式","3.投标格式",
+                                     BIDMETHOD,
+                                     [0,1],
+                                     0) )
+
+        pg.Append( wxpg.PropertyCategory("3 - 附件") )
+        pg.Append( wxpg.FileProperty("1.图纸文件 *",value=r"") )
+        pg.Append( wxpg.FileProperty("2.保密协议文档",value=r"") )
+        pg.Append( wxpg.FileProperty("3.邀标信息文档",value=r"") )
+        pg.Append( wxpg.FileProperty("4.技术要求文档",value=r"") )
+
+        pg.SetPropertyAttribute( "1.图纸文件 *", wxpg.PG_FILE_SHOW_FULL_PATH, 0 )
+        pg.SetPropertyAttribute( "1.图纸文件 *", wxpg.PG_FILE_INITIAL_PATH,
+                                 r"C:\Program Files\Internet Explorer" )
+        pg.SetPropertyAttribute( "1.投标日期", wxpg.PG_DATE_PICKER_STYLE,
+                                 wx.adv.DP_DROPDOWN|wx.adv.DP_SHOWCENTURY )
+        pg.Append( wxpg.LongStringProperty("技术图纸附件") )
+        pg.SetPropertyEditor("技术图纸附件", "SampleMultiButtonEditor")
+
+        topsizer.Add(pg, 1, wx.EXPAND)
+        panel.SetSizer(topsizer)
+        topsizer.SetSizeHints(panel)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(panel, 1, wx.EXPAND)
+        self.SetSizer(sizer)
+        self.SetAutoLayout(True)
+
+    # def OnPropGridChange(self, event):
+    #     p = event.GetProperty()
+    #     if p:
+    #         self.log.write('%s changed to "%s"\n' % (p.GetName(),p.GetValueAsString()))
+    #
+    # def OnPropGridSelect(self, event):
+    #     p = event.GetProperty()
+    #     if p:
+    #         self.log.write('%s selected\n' % (event.GetProperty().GetName()))
+    #     else:
+    #         self.log.write('Nothing selected\n')
+    #
+    # def OnDeleteProperty(self, event):
+    #     p = self.pg.GetSelectedProperty()
+    #     if p:
+    #         self.pg.DeleteProperty(p)
+    #     else:
+    #         wx.MessageBox("First select a property to delete")
+    #
+    # def OnReserved(self, event):
+    #     pass
+    #
+    # def OnSetPropertyValues(self,event):
+    #     try:
+    #         d = self.pg.GetPropertyValues(inc_attributes=True)
+    #
+    #         ss = []
+    #         for k,v in d.items():
+    #             v = repr(v)
+    #             if not v or v[0] != '<':
+    #                 if k.startswith('@'):
+    #                     ss.append('setattr(obj, "%s", %s)'%(k,v))
+    #                 else:
+    #                     ss.append('obj.%s = %s'%(k,v))
+    #
+    #         with MemoDialog(self,
+    #                 "Enter Content for Object Used in SetPropertyValues",
+    #                 '\n'.join(ss)) as dlg:  # default_object_content1
+    #
+    #             if dlg.ShowModal() == wx.ID_OK:
+    #                 import datetime
+    #                 sandbox = {'obj':ValueObject(),
+    #                            'wx':wx,
+    #                            'datetime':datetime}
+    #                 exec_(dlg.tc.GetValue(), sandbox)
+    #                 t_start = time.time()
+    #                 #print(sandbox['obj'].__dict__)
+    #                 self.pg.SetPropertyValues(sandbox['obj'])
+    #                 t_end = time.time()
+    #                 self.log.write('SetPropertyValues finished in %.0fms\n' %
+    #                                ((t_end-t_start)*1000.0))
+    #     except:
+    #         import traceback
+    #         traceback.print_exc()
+    #
+    # def OnGetPropertyValues(self,event):
+    #     try:
+    #         t_start = time.time()
+    #         d = self.pg.GetPropertyValues(inc_attributes=True)
+    #         t_end = time.time()
+    #         self.log.write('GetPropertyValues finished in %.0fms\n' %
+    #                        ((t_end-t_start)*1000.0))
+    #         ss = ['%s: %s'%(k,repr(v)) for k,v in d.items()]
+    #         self.propertyDic={}
+    #         for k,v in d.items():
+    #             self.propertyDic[k]=v
+    #         with MemoDialog(self,"GetPropertyValues Result",
+    #                        'Contents of resulting dictionary:\n\n'+'\n'.join(ss)) as dlg:
+    #             dlg.ShowModal()
+    #
+    #     except:
+    #         import traceback
+    #         traceback.print_exc()
+    #
+    # def OnGetPropertyValues2(self,event):
+    #     try:
+    #         t_start = time.time()
+    #         d = self.pg.GetPropertyValues(as_strings=True)
+    #         t_end = time.time()
+    #         self.log.write('GetPropertyValues(as_strings=True) finished in %.0fms\n' %
+    #                        ((t_end-t_start)*1000.0))
+    #         ss = ['%s: %s'%(k,repr(v)) for k,v in d.items()]
+    #         with MemoDialog(self,"GetPropertyValues Result",
+    #                        'Contents of resulting dictionary:\n\n'+'\n'.join(ss)) as dlg:
+    #             dlg.ShowModal()
+    #     except:
+    #         import traceback
+    #         traceback.print_exc()
+    #
+    # def OnAutoFill(self,event):
+    #     try:
+    #         with MemoDialog(self,"Enter Content for Object Used for AutoFill",default_object_content1) as dlg:
+    #             if dlg.ShowModal() == wx.ID_OK:
+    #                 sandbox = {'object':ValueObject(),'wx':wx}
+    #                 exec_(dlg.tc.GetValue(), sandbox)
+    #                 t_start = time.time()
+    #                 self.pg.AutoFill(sandbox['object'])
+    #                 t_end = time.time()
+    #                 self.log.write('AutoFill finished in %.0fms\n' %
+    #                                ((t_end-t_start)*1000.0))
+    #     except:
+    #         import traceback
+    #         traceback.print_exc()
+    #
+    # def OnPropGridRightClick(self, event):
+    #     p = event.GetProperty()
+    #     if p:
+    #         self.log.write('%s right clicked\n' % (event.GetProperty().GetName()))
+    #     else:
+    #         self.log.write('Nothing right clicked\n')
+    #
+    # def OnPropGridPageChange(self, event):
+    #     index = self.pg.GetSelectedPage()
+    #     self.log.write('Page Changed to \'%s\'\n' % (self.pg.GetPageName(index)))
+    #
+    # def RunTests(self, event):
+    #     pg = self.pg
+    #     log = self.log
+    #
+    #     # Validate client data
+    #     log.write('Testing client data set/get')
+    #     pg.SetPropertyClientData( "Bool", 1234 )
+    #     if pg.GetPropertyClientData( "Bool" ) != 1234:
+    #         raise ValueError("Set/GetPropertyClientData() failed")
+    #
+    #     # Test setting unicode string
+    #     log.write('Testing setting an unicode string value')
+    #     pg.GetPropertyByName("String").SetValue(u"Some Unicode Text")
+    #
+    #     #
+    #     # Test some code that *should* fail (but not crash)
+    #     try:
+    #         if wx.GetApp().GetAssertionMode() == wx.PYAPP_ASSERT_EXCEPTION:
+    #             log.write('Testing exception handling compliancy')
+    #             a_ = pg.GetPropertyValue( "NotARealProperty" )
+    #             pg.EnableProperty( "NotAtAllRealProperty", False )
+    #             pg.SetPropertyHelpString("AgaintNotARealProperty",
+    #                                      "Dummy Help String" )
+    #     except:
+    #         pass
+    #
+    #     # GetPyIterator
+    #     log.write('GetPage(0).GetPyIterator()\n')
+    #     it = pg.GetPage(0).GetPyIterator(wxpg.PG_ITERATE_ALL)
+    #     for prop in it:
+    #         log.write('Iterating \'%s\'\n' % (prop.GetName()))
+    #
+    #     # VIterator
+    #     log.write('GetPyVIterator()\n')
+    #     it = pg.GetPyVIterator(wxpg.PG_ITERATE_ALL)
+    #     for prop in it:
+    #         log.write('Iterating \'%s\'\n' % (prop.GetName()))
+    #
+    #     # Properties
+    #     log.write('GetPage(0).Properties\n')
+    #     it = pg.GetPage(0).Properties
+    #     for prop in it:
+    #         log.write('Iterating \'%s\'\n' % (prop.GetName()))
+    #
+    #     # Items
+    #     log.write('GetPage(0).Items\n')
+    #     it = pg.GetPage(0).Items
+    #     for prop in it:
+    #         log.write('Iterating \'%s\'\n' % (prop.GetName()))
+
 class NewOrderPanel(wx.Panel):
     def __init__( self, parent, log ,size):
         wx.Panel.__init__(self, parent, wx.ID_ANY,size=size)
@@ -580,7 +900,7 @@ class NewOrderPanel(wx.Panel):
         #
         pg.AddPage( "订单部录入信息" )
         pg.Append( wxpg.PropertyCategory("1 - 订单基本信息") )
-        pg.Append( wxpg.StringProperty("1.订单名称",value="") )
+        pg.Append( wxpg.StringProperty("1.订单名称 *",value="") )
         pg.Append( wxpg.StringProperty("2.客户单位名称",value="") )
         pg.Append( wxpg.StringProperty("3.客户公司信息",value="") )
         pg.Append( wxpg.StringProperty("4.联系人姓名",value="") )
@@ -589,27 +909,25 @@ class NewOrderPanel(wx.Panel):
         pg.Append( wxpg.DateProperty("7.下单日期",value=wx.DateTime.Now()) )
 
         pg.Append( wxpg.PropertyCategory("2 - 询价文件") )
-        pg.Append( wxpg.DateProperty("1.投标日期",value=wx.DateTime.Now()) )
+
+        pg.Append( wxpg.DateProperty("1.投标日期",value=pydate2wxdate(datetime.date.today()+datetime.timedelta(days=7))) )
         pg.Append( wxpg.EnumProperty("2.投标方式","2.投标方式",
-                                     ['wxPython Rules',
-                                      'wxPython Rocks',
-                                      'wxPython Is The Best'],
-                                     [10,11,12],
+                                     BIDMODE,
+                                     [0,1,2],
                                      0) )
         pg.Append( wxpg.EnumProperty("3.投标格式","3.投标格式",
-                                     ['离岸价',
-                                      '到岸价'],
-                                     [1,2],
-                                     1) )
+                                     BIDMETHOD,
+                                     [0,1],
+                                     0) )
 
         pg.Append( wxpg.PropertyCategory("3 - 附件") )
-        pg.Append( wxpg.FileProperty("1.图纸文件",value=r"") )
+        pg.Append( wxpg.FileProperty("1.图纸文件 *",value=r"") )
         pg.Append( wxpg.FileProperty("2.保密协议文档",value=r"") )
         pg.Append( wxpg.FileProperty("3.邀标信息文档",value=r"") )
         pg.Append( wxpg.FileProperty("4.技术要求文档",value=r"") )
 
-        pg.SetPropertyAttribute( "1.图纸文件", wxpg.PG_FILE_SHOW_FULL_PATH, 0 )
-        pg.SetPropertyAttribute( "1.图纸文件", wxpg.PG_FILE_INITIAL_PATH,
+        pg.SetPropertyAttribute( "1.图纸文件 *", wxpg.PG_FILE_SHOW_FULL_PATH, 0 )
+        pg.SetPropertyAttribute( "1.图纸文件 *", wxpg.PG_FILE_INITIAL_PATH,
                                  r"C:\Program Files\Internet Explorer" )
         pg.SetPropertyAttribute( "1.投标日期", wxpg.PG_DATE_PICKER_STYLE,
                                  wx.adv.DP_DROPDOWN|wx.adv.DP_SHOWCENTURY )
@@ -929,14 +1247,30 @@ class CreateNewOrderDialog(wx.Dialog):
         btn_ok.Bind(wx.EVT_BUTTON, self.OnOk)
         # btn_cancel.Bind(wx.EVT_BUTTON, self.OnCancel)
 
+    # def OnCancel(self, event):
+    #     # self.log.WriteText("操作员：'%s' 取消库存参数设置操作\r\n"%(self.parent.operator_name))
+    #     event.Skip()
+
+
     def OnOk(self, event):
         d = self.propertyPanel.pg.GetPropertyValues(inc_attributes=True)
         self.propertyDic = {}
         for k, v in d.items():
             self.propertyDic[k] = v
-        InsertNewOrder(self.log,1,self.propertyDic)
-        GetPDF(self.log,1)
+
+        operatorID = self.parent.parent.operatorID
+        for key in self.propertyDic.keys():
+            if self.propertyDic[key]=="" and '*' in key:
+                wx.MessageBox("%s不能为空，请重新输入！"%key)
+                return
+        startDate = wxdate2pydate(self.propertyDic["7.下单日期"])
+        endDate = wxdate2pydate(self.propertyDic["1.投标日期"])
+        delta = (endDate-startDate).days
+        if delta<5:
+            wx.MessageBox("投标日期与下单日期太近，请修改后再试！")
+            return
+        # elif
+        InsertNewOrder(self.log,1,self.propertyDic,operatorID)
+        # GetPDF(self.log,1)
         event.Skip()
-    # def OnCancel(self, event):
-    #     # self.log.WriteText("操作员：'%s' 取消库存参数设置操作\r\n"%(self.parent.operator_name))
-    #     event.Skip()
+

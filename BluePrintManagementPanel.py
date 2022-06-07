@@ -2095,6 +2095,7 @@ class BluePrintManagementPanel(wx.Panel):
         self.log = log
     def ReCreate(self):
         self.Freeze()
+        self.DestroyChildren()
         self.processList=["505","405","409","406","652","100","306","9000"]
         self.notebook = wx.Notebook(self, -1, size=(21, 21), style=
                                     # wx.BK_DEFAULT
