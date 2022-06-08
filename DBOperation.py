@@ -174,6 +174,80 @@ def UpdateOrderInfo(log, whichDB,data):
         db.rollback()
     db.close()
 
+def UpdateDraftOrderInfoByID(log, whichDB,dic,id):
+    id = int(id)
+    result=1
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sectionNameDic={
+                       "订单名称":"1.订单名称 *",
+                       "客户名称":"2.客户单位名称",
+                       "客户公司信息":"3.客户公司信息",
+                       "联系人":"4.联系人姓名",
+                       "联系人电话":"5.联系人电话",
+                       "联系人邮箱":"6.联系人email",
+                       "投标方式":"2.投标方式",
+                       "投标格式":"3.投标格式",
+                       "下单时间":"7.下单日期",
+                       "投标时间":"1.投标日期"
+                    }
+    for i,sectionName in enumerate(sectionNameDic.keys()):
+        if sectionName == "投标方式":
+            value = BIDMODE[int(dic[sectionNameDic[sectionName]])]
+        elif sectionName == "投标格式":
+            value = BIDMETHOD[int(dic[sectionNameDic[sectionName]])]
+        elif sectionName in ["下单时间","投标时间"]:
+            value = dic[sectionNameDic[sectionName]].FormatISODate()
+        else:
+            value = dic[sectionNameDic[sectionName]]
+        sql = "UPDATE `订单信息` SET `%s`='%s' where `Index`=%s " %(sectionName,value,id)
+        try:
+            cursor.execute(sql)
+            db.commit()  # 必须有，没有的话插入语句不会执行
+        except:
+            print("error1")
+            db.rollback()
+            result=-1
+
+    if dic["1.图纸文件 *"]!='':
+        data = TransformBase64(dic["1.图纸文件 *"])
+    else:
+        data = ""
+    sql = "UPDATE `订单信息` SET `客户原始技术图纸名`= '%s' where `Index`= %s "%(json.dumps(dic["1.图纸文件 *"],ensure_ascii=False), id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("errorName")
+        db.rollback()
+        result=-1
+    length = len(data)
+    if length%(1024*1024)>0:
+        times = length/(1024*1024)+1
+    else:
+        times = length/(1024*1024)
+    if times>2:
+        times=2
+    for i in range(times):
+        temp=data[i*(1024*1024):(i+1)*1024*1024]
+        sql = "UPDATE `订单信息` SET `图%s`= '%s' where `Index`= %s "%(i, temp ,id)
+        try:
+            cursor.execute(sql)
+            db.commit()  # 必须有，没有的话插入语句不会执行
+        except:
+            print("error图")
+            db.rollback()
+            result=-1
+    db.close()
+    return result
+
 def UpdateConstructionInDB(log, whichDB,data):
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
@@ -1351,6 +1425,25 @@ def GetOrderDetailRecord(log, whichDB, orderDetailID,suborderNum=None):
     db.close()
     return 0, temp
 
+def GetDraftOrderDetailByID(log,whichDB, id):
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql="select * from `订单信息` where `Index`=%s"%id
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    column = [index[0] for index in cursor.description]
+    data_dict = [dict(zip(column,row)) for row in result]
+    db.close()
+    return 0, data_dict[0]
+
+
 def GetOrderPanelRecord(log, whichDB, orderDetailID,suborderNum=None):
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
@@ -1550,6 +1643,7 @@ def InsertPanelDetailIntoPackageDB(log, whichDB, orderTabelName, orderDataList):
     db.close()
 
 def InsertNewOrder(log,whichDB,dic,operatorID):
+    result = 1
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
@@ -1593,7 +1687,7 @@ def InsertNewOrder(log,whichDB,dic,operatorID):
         if sectionName == "投标方式":
             value = BIDMODE[int(dic[sectionNameDic[sectionName]])]
         elif sectionName == "投标格式":
-            value = BIDMODE[int(dic[sectionNameDic[sectionName]])]
+            value = BIDMETHOD[int(dic[sectionNameDic[sectionName]])]
         elif sectionName in ["下单时间","投标时间"]:
             value = dic[sectionNameDic[sectionName]].FormatISODate()
         else:
@@ -1610,15 +1704,33 @@ def InsertNewOrder(log,whichDB,dic,operatorID):
         data = TransformBase64(dic["1.图纸文件 *"])
     else:
         data = ""
-    # sql = "UPDATE `订单信息` SET `客户原始技术图纸名`= '%s,`图`= '%s' where `Index`= %s "%(json.dumps(dic["1.图纸文件 *"],ensure_ascii=False), data,id)
-    sql = "UPDATE `订单信息` SET `客户原始技术图纸名`= '%s',`图`= '%s' where `Index`= %s "%(json.dumps(dic["1.图纸文件 *"],ensure_ascii=False), data,id)
+    sql = "UPDATE `订单信息` SET `客户原始技术图纸名`= '%s' where `Index`= %s "%(json.dumps(dic["1.图纸文件 *"],ensure_ascii=False), id)
     try:
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
-        print("error1")
+        print("errorName")
         db.rollback()
+        result=-1
+    length = len(data)
+    if length%(1024*1024)>0:
+        times = length/(1024*1024)+1
+    else:
+        times = length/(1024*1024)
+    if times>2:
+        times=2
+    for i in range(times):
+        temp=data[i*(1024*1024):(i+1)*1024*1024]
+        sql = "UPDATE `订单信息` SET `图%s`= '%s' where `Index`= %s "%(i, temp ,id)
+        try:
+            cursor.execute(sql)
+            db.commit()  # 必须有，没有的话插入语句不会执行
+        except:
+            print("error图")
+            db.rollback()
+            result=-1
     db.close()
+    return result
 
 def GetPDF(log,whichDB):
     try:
@@ -1641,3 +1753,30 @@ def GetPDF(log,whichDB):
     with open('TJDZ_1.pdf', 'wb') as file:
         image = base64.b64decode(record[0])  # 解码
         file.write(image)
+def GetTechDrawingDataByID(log,whichDB,id):
+    id = int(id)
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    # sql = "UPDATE 系统参数 SET `启动纵切最小板材数`='%s', `任务单每页行数`='%s', `墙角板型号列表`='%s' " %(propertyDic["启动纵切最小板材数"],propertyDic["任务单每页行数"],json.dumps(propertyDic["墙角板型号列表"]))
+    # sql = "INSERT INTO `订单信息` (`订单名称`,`客户原始技术图纸名`,`客户原始技术图纸`) VALUES ('%s', '%s', %s)"%(propertyDic["1.订单名称"], json.dumps(propertyDic["1.图纸文件"],ensure_ascii=False), MySQLdb.Binary(img))
+    # sql = "INSERT INTO `订单信息` (`订单名称`,`客户原始技术图纸名`,`图`) VALUES ('%s', '%s', '%s')"%(propertyDic["1.订单名称"], json.dumps(propertyDic["1.图纸文件"],ensure_ascii=False), data)
+    # sql = """INSERT INTO `订单信息` (`图`) VALUES (%s)""" %(img)
+    temp =""
+    for i in range(3):
+        sql = "select `图%s`  from `订单信息` where `Index`=%s" % (i,id)
+        cursor.execute(sql)
+        record=cursor.fetchone()
+        if record[0]=="":
+            break
+        else:
+            temp+=record[0]
+    image = base64.b64decode(temp)  # 解码
+    db.close()
+    return image

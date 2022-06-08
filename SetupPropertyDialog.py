@@ -659,7 +659,6 @@ class LargeImageEditor(wxpg.PGEditor):
         image.Rescale(64, 64)
         self.bmp = wx.Bitmap(image)
 
-
 ############################################################################
 #
 # MAIN PROPERTY GRID TEST PANEL
