@@ -975,9 +975,9 @@ class WorkZonePanel(wx.Panel):
         self.notebook.AddPage(self.systemIntroductionPanel,"系统介绍")
         if self.master.operatorCharacter in ["技术员","下单员","管理员","财务人员","采购员"]:
             if self.master.operatorCharacter == "技术员":
-                self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,type="在产")
+                self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,character=self.master.operatorCharacter,type="在产")
             else:
-                self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log)
+                self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,character=self.master.operatorCharacter)
         self.notebook.AddPage(self.orderManagementPanel, "订单管理")
         if self.master.operatorCharacter in ["技术员","管理员"]:
             self.boardManagementPanel = BoardManagementPanel(self.notebook, self, self.log)

@@ -865,9 +865,9 @@ def GetSubOrderPanelsForPackage(log,whichDB,orderID,suborderID=None):
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % orderDBName[whichDB], charset='utf8')
     except:
-        wx.MessageBox("无法连接%s!" % orderName[whichDB], "错误信息")
+        wx.MessageBox("无法连接%s!" % orderDBName[whichDB], "错误信息")
         if log:
-            log.WriteText("无法连接%s!" % orderName[whichDB], colour=wx.RED)
+            log.WriteText("无法连接%s!" % orderDBName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
     if suborderID == None:
@@ -1753,6 +1753,149 @@ def GetPDF(log,whichDB):
     with open('TJDZ_1.pdf', 'wb') as file:
         image = base64.b64decode(record[0])  # 解码
         file.write(image)
+
+def UpdateTechCheckStateByID(log,whichDB,id):
+    id = int(id)
+    result = 1
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = "UPDATE `订单信息` SET `技术审核状态`= 'I' where `Index`= %s " % (id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("修改技术审核状态出错！")
+        db.rollback()
+        result = -1
+    db.close()
+    return result
+
+def UpdateDrafCheckInfoByID(log,whichDB,id,dicList):
+    id = int(id)
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % orderCheckDBName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return []
+    cursor = db.cursor()
+    sql = "DROP TABLE IF Exists `%s`"%id
+    cursor.execute(sql)
+    sql = """CREATE TABLE `%s` (
+            `Index` INT(11) NOT NULL AUTO_INCREMENT,
+            `类别` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `产品名称` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `产品型号` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `产品表面材料` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `产品长度` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `产品宽度` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `产品厚度` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `单位` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `数量` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `单价` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `总价` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `产品描述` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            PRIMARY KEY (`Index`) USING BTREE
+            )
+            COLLATE='utf8_unicode_ci'
+            ENGINE=InnoDB
+            AUTO_INCREMENT=2
+            ;
+        """%(id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("error new")
+        db.rollback()
+    for dic in dicList:
+        ls = [(k,dic[k]) for k in dic if dic[k] is not None]
+        sql = 'insert `%s` (' %id + ','.join(i[0] for i in ls)+') values ('+','.join('%r' %i[1] for i in ls)+')'
+        print(sql)
+        try:
+            cursor.execute(sql)
+            db.commit()  # 必须有，没有的话插入语句不会执行
+        except:
+            print("error new")
+            db.rollback()
+    cursor.close
+
+def GetDraftWallInfoByID(log,whichDB,id):
+    id = int(id)
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % orderCheckDBName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return []
+    cursor = db.cursor()
+    sql = "select table_name from information_schema.tables where table_schema='%s'"%orderCheckDBName[whichDB]
+    cursor.execute(sql)
+    temp = cursor.fetchall()
+    if str(id) not in temp[0]:
+        sql = """CREATE TABLE `%s` (
+                `Index` INT(11) NOT NULL AUTO_INCREMENT,
+                `类别` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `产品名称` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `产品型号` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `产品表面材料` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `产品长度` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `产品宽度` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `产品厚度` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `单位` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `数量` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `单价` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `总价` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `产品描述` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                PRIMARY KEY (`Index`) USING BTREE
+                )
+                COLLATE='utf8_unicode_ci'
+                ENGINE=InnoDB
+                AUTO_INCREMENT=2
+                ;
+            """%(id)
+        try:
+            cursor.execute(sql)
+            db.commit()  # 必须有，没有的话插入语句不会执行
+        except:
+            print("error new")
+            db.rollback()
+    sql="select * from `%s` where `类别`='%s'"%(id,"WALL")
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    column = [index[0] for index in cursor.description]
+    data_dict = [dict(zip(column,row)) for row in result]
+    db.close()
+    return data_dict
+
+def GetTechCheckStateByID(log,whichDB,id):
+    id = int(id)
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = "select `技术审核状态`  from `订单信息` where `Index`=%s" % id
+    cursor.execute(sql)
+    record=cursor.fetchone()
+    db.close()
+    return record[0]
+
 def GetTechDrawingDataByID(log,whichDB,id):
     id = int(id)
     try:

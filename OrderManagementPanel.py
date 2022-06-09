@@ -1,18 +1,19 @@
+import copy
+from operator import itemgetter
+
+import numpy as np
 import wx
 import wx.grid as gridlib
-from DBOperation import GetAllOrderAllInfo,GetAllOrderList,GetOrderDetailRecord,InsertNewOrder,GetStaffInfoWithID,\
-    GetDraftOrderDetailByID,UpdateDraftOrderInfoByID,GetTechDrawingDataByID,GetPDF
+
 from BluePrintManagementPanel import BluePrintShowPanel
-from OrderDetailTree import OrderDetailTree
-from ID_DEFINE import *
-import numpy as np
-import images
-import copy
-from SetupPropertyDialog import *
-import datetime
+from DBOperation import GetAllOrderAllInfo, GetAllOrderList, GetOrderDetailRecord, InsertNewOrder, GetStaffInfoWithID, \
+    GetDraftOrderDetailByID, UpdateDraftOrderInfoByID, GetTechDrawingDataByID,GetTechCheckStateByID,\
+    UpdateTechCheckStateByID,GetDraftWallInfoByID,UpdateDrafCheckInfoByID
 from DateTimeConvert import *
-import json
-from operator import itemgetter
+from ID_DEFINE import *
+from OrderDetailTree import OrderDetailTree
+from SetupPropertyDialog import *
+
 
 class OrderDetailGrid(gridlib.Grid): ##, mixins.GridAutoEditMixin):
     def __init__(self, parent, master, log):
@@ -250,15 +251,24 @@ class OrderGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
 
         for i, order in enumerate(self.master.dataArray):
             self.SetRowSize(i, 25)
-            print("order=",order)
             for j, item in enumerate(order):#z最后一列位子订单列表，不再grid上显示
                 # self.SetCellBackgroundColour(i,j,wx.Colour(250, 250, 250))
                 self.SetCellAlignment(i, j, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE_VERTICAL)
                 self.SetCellValue(i, j, str(item))
-                if int(order[0])<2:
-                    self.SetCellBackgroundColour(i,j,wx.RED)
-                elif int(order[0])<5:
-                    self.SetCellBackgroundColour(i,j,wx.YELLOW)
+                if j==0:
+                    if int(order[0])<2:
+                        self.SetCellBackgroundColour(i,j,wx.RED)
+                    elif int(order[0])<5:
+                        self.SetCellBackgroundColour(i,j,wx.YELLOW)
+                elif j>=9:
+                    if item=="未审核":
+                        self.SetCellBackgroundColour(i,j,wx.Colour(250,180,180))
+                    elif item =="审核通过":
+                        self.SetCellBackgroundColour(i,j,wx.GREEN)
+                    else:
+                        self.SetCellBackgroundColour(i,j,wx.YELLOW)
+
+
 
         # self.Bind(gridlib.EVT_GRID_SELECT_CELL, self.OnSelectCell)
         # self.Bind(gridlib.EVT_GRID_EDITOR_SHOWN, self.OnEditorShown)
@@ -282,7 +292,6 @@ class OrderGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
             self.SetColSize(i, width)
         for i, order in enumerate(self.master.dataArray[:,:7]):
             self.SetRowSize(i, 25)
-            print("order=",order)
             for j, item in enumerate(order):
                 self.SetCellAlignment(i, j, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE_VERTICAL)
                 self.SetCellValue(i, j, str(item))
@@ -300,11 +309,12 @@ class OrderGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         evt.Skip()
 
 class OrderManagementPanel(wx.Panel):
-    def __init__(self, parent, master, log,type="草稿"):
+    def __init__(self, parent, master, log,character,type="草稿"):
         wx.Panel.__init__(self, parent, -1)
         self.master = master
         self.log = log
         self.type = type
+        self.character = character
 
     def ReCreate(self):
         self.Freeze()
@@ -342,11 +352,15 @@ class OrderManagementPanel(wx.Panel):
                 record[4]=""
             _, staffInfo = GetStaffInfoWithID(self.log, WHICHDB, record[7])
             record[7] = staffInfo[3]
-            if self.type in ["草稿","废弃"]:
-                record[9]="未审核" if record[9]=='N' else "审核通过"
-                record[10]="未审核" if record[10]=='N' else "审核通过"
-                record[11]="未审核" if record[11]=='N' else "审核通过"
-                record[12]="未审核" if record[12]=='N' else "审核通过"
+            for i in range(4):
+                if self.type in ["草稿","废弃"]:
+                    if record[9+i]=='N':
+                        record[9+i]="未审核"
+                    elif record[9+i]=='Y':
+                        record[9+i]="审核通过"
+                    else:
+                        record[9+i]="正在审核"
+
             orderList.append(record)
         orderList.sort(key=itemgetter(0), reverse=False)
 
@@ -359,7 +373,7 @@ class OrderManagementPanel(wx.Panel):
         hbox = wx.BoxSizer()
         size=(1000,-1)
         if self.type in ["草稿","废弃"]:
-            size=(920,-1)
+            size=(1100,-1)
         elif self.type in ["在产","完工"]:
             size=(710,-1)
         self.leftPanel = wx.Panel(self, size=size)
@@ -434,30 +448,60 @@ class OrderManagementPanel(wx.Panel):
         self.orderDetailTreePanel.SetSizer(vbox)
         self.orderDetailTreePanel.Layout()
 
+    def ReCreateOrderEditPanel(self):
+        self.orderEditPanel.Freeze()
+        self.orderEditPanel.DestroyChildren()
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        self.draftOrderEditPanel = DraftOrderPanel(self.orderEditPanel, self.log, size=(600, 600), mode="EDIT", ID = self.data[1],character="下单员")
+        vbox.Add(self.draftOrderEditPanel, 1, wx.EXPAND)
+        # line = wx.StaticLine(self.orderEditPanel, -1, size=(30, -1), style=wx.LI_HORIZONTAL)
+        # sizer.Add(line, 0, wx.GROW | wx.RIGHT | wx.TOP, 5)
+        #
+        # btnsizer = wx.BoxSizer()
+        # bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
+        # bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
+        # bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
+        # btn_ok = wx.Button(self.orderEditPanel, wx.ID_OK, "确 认 修 改", size=(200, 50))
+        # btn_ok.Bind(wx.EVT_BUTTON,self.OnDraftOrderEditOkBTN)
+        # btn_ok.SetBitmap(bitmap1, wx.LEFT)
+        # btnsizer.Add(btn_ok, 0)
+        # btnsizer.Add((40, -1), 0)
+        # sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+        # self.orderEditPanel.SetSizer(sizer)
+        # sizer.Fit(self.orderEditPanel)
+        self.orderEditPanel.SetSizer(vbox)
+        self.orderEditPanel.Layout()
+        self.orderEditPanel.Thaw()
+
     def ReCreateTechCheckPanel(self):
         self.orderTechCheckPanel.DestroyChildren()
-        hbox = wx.BoxSizer()
-        # self.techCheckInfoPanel = TechCheckInfoPanel(self.orderTechCheckPanel, self.log, size=(300, 100))
-        self.techCheckInfoPanel = DraftOrderPanel(self.orderTechCheckPanel, self.log, size=(300, 600), mode="USE", ID = self.data[1])
-        hbox.Add(self.techCheckInfoPanel,0,wx.EXPAND)
-        self.orderTechCheckPanel.SetSizer(hbox)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        self.techCheckInfoPanel = DraftOrderPanel(self.orderTechCheckPanel, self.log, size=(300, 600), mode="USE", ID = self.data[1],character="技术员")
+        vbox.Add(self.techCheckInfoPanel,1,wx.EXPAND)
+        self.orderTechCheckPanel.SetSizer(vbox)
         self.orderTechCheckPanel.Layout()
 
     def ReCreatePurchaseCheckPanel(self):
         self.orderPurchaseCheckPanel.DestroyChildren()
         vbox = wx.BoxSizer(wx.VERTICAL)
+        self.purchaseCheckInfoPanel = DraftOrderPanel(self.orderPurchaseCheckPanel, self.log, size=(300, 600), mode="USE", ID = self.data[1],character="采购员")
+        vbox.Add(self.purchaseCheckInfoPanel,1,wx.EXPAND)
         self.orderPurchaseCheckPanel.SetSizer(vbox)
         self.orderPurchaseCheckPanel.Layout()
 
     def ReCreateFinancialCheckPanel(self):
         self.orderFinancialCheckPanel.DestroyChildren()
         vbox = wx.BoxSizer(wx.VERTICAL)
+        self.financialCheckInfoPanel = DraftOrderPanel(self.orderFinancialCheckPanel, self.log, size=(300, 600), mode="USE", ID = self.data[1],character="财务")
+        vbox.Add(self.financialCheckInfoPanel,1,wx.EXPAND)
         self.orderFinancialCheckPanel.SetSizer(vbox)
         self.orderFinancialCheckPanel.Layout()
 
     def ReCreateManagerCheckPanel(self):
         self.orderManagerCheckPanel.DestroyChildren()
         vbox = wx.BoxSizer(wx.VERTICAL)
+        self.managerCheckInfoPanel = DraftOrderPanel(self.orderManagerCheckPanel, self.log, size=(300, 600), mode="USE", ID = self.data[1],character="经理")
+        vbox.Add(self.managerCheckInfoPanel,1,wx.EXPAND)
         self.orderManagerCheckPanel.SetSizer(vbox)
         self.orderManagerCheckPanel.Layout()
 
@@ -468,6 +512,7 @@ class OrderManagementPanel(wx.Panel):
         self.data = self.dataArray[row]
         if self.type == "草稿":
             self.ReCreateRightPanel()
+            self.ReCreateOrderEditPanel()
             self.ReCreateTechCheckPanel()
             self.ReCreatePurchaseCheckPanel()
             self.ReCreateFinancialCheckPanel()
@@ -563,9 +608,7 @@ class OrderManagementPanel(wx.Panel):
         elif self.type=="草稿":
             if self.master.operatorCharacter=="下单员":
                 self.orderEditPanel = wx.Panel(self.notebook,size=(260,-1))
-                self.notebook.AddPage(self.orderEditPanel, "订单编辑")
-                self.orderCheckPanel = wx.Panel(self.notebook,size=(260,-1))
-                self.notebook.AddPage(self.orderCheckPanel, "订单部审核")
+                self.notebook.AddPage(self.orderEditPanel, "订单部审核")
                 self.ReCreateOrderEditPanel()
             self.orderTechCheckPanel = wx.Panel(self.notebook,size=(260,-1))
             self.notebook.AddPage(self.orderTechCheckPanel, "技术部审核")
@@ -577,46 +620,27 @@ class OrderManagementPanel(wx.Panel):
             self.notebook.AddPage(self.orderManagerCheckPanel, "经理审核")
         self.rightPanel.Thaw()
 
-    def ReCreateOrderEditPanel(self):
-        self.orderEditPanel.Freeze()
-        self.orderEditPanel.DestroyChildren()
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        self.draftOrderEditPanel = DraftOrderPanel(self.orderEditPanel, self.log, size=(600, 600), mode="EDIT", ID = self.data[1])
-        sizer.Add(self.draftOrderEditPanel, 1, wx.EXPAND)
-        line = wx.StaticLine(self.orderEditPanel, -1, size=(30, -1), style=wx.LI_HORIZONTAL)
-        sizer.Add(line, 0, wx.GROW | wx.RIGHT | wx.TOP, 5)
 
-        btnsizer = wx.BoxSizer()
-        bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
-        bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
-        bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
-        btn_ok = wx.Button(self.orderEditPanel, wx.ID_OK, "确 认 修 改", size=(200, 50))
-        btn_ok.Bind(wx.EVT_BUTTON,self.OnDraftOrderEditOkBTN)
-        btn_ok.SetBitmap(bitmap1, wx.LEFT)
-        btnsizer.Add(btn_ok, 0)
-        btnsizer.Add((40, -1), 0)
-        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
-        self.orderEditPanel.SetSizer(sizer)
-        sizer.Fit(self.orderEditPanel)
-        self.orderEditPanel.Thaw()
-
-    def OnDraftOrderEditOkBTN(self,event):
-        d = self.draftOrderEditPanel.pg.GetPropertyValues(inc_attributes=True)
-        dic = {}
-        for k, v in d.items():
-            dic[k] = v
-
-        # operatorID = self.parent.parent.operatorID
-        for key in dic.keys():
-            if dic[key]=="" and '*' in key:
-                wx.MessageBox("%s不能为空，请重新输入！"%key)
-                return
-        code = UpdateDraftOrderInfoByID(self.log,WHICHDB,dic,self.data[1])
-        if code>0:
-            wx.MessageBox("更新成功！")
-        else:
-            wx.MessageBox("更新失败！")
-        self.ReCreate()
+    # def OnDraftOrderEditOkBTN(self,event):
+    #     d = self.draftOrderEditPanel.pg.GetPropertyValues(inc_attributes=True)
+    #     dic = {}
+    #     for k, v in d.items():
+    #         dic[k] = v
+    #
+    #     # operatorID = self.parent.parent.operatorID
+    #     for key in dic.keys():
+    #         if dic[key]=="" and '*' in key:
+    #             wx.MessageBox("%s不能为空，请重新输入！"%key)
+    #             return
+    #     code = UpdateDraftOrderInfoByID(self.log,WHICHDB,dic,self.data[1])
+    #     if code>0:
+    #         wx.MessageBox("更新成功！")
+    #     else:
+    #         wx.MessageBox("更新失败！")
+    #     self.ReCreate()
+    #
+    # def OnDraftOrderEditCancelBTN(self,event):
+    #     self.ReCreate()
 
     def ReCreteOrderDetailGridPanel(self):
         self.orderDetailGridPanel.Freeze()
@@ -688,12 +712,13 @@ class OrderManagementPanel(wx.Panel):
         self.ReSearch()
 
 class DraftOrderPanel(wx.Panel):
-    def __init__( self, parent, log ,size,mode="NEW",ID=None):
+    def __init__( self, parent, log ,size,mode="NEW",ID=None,character="技术员"):
         wx.Panel.__init__(self, parent, wx.ID_ANY,size=size)
         self.log = log
         self.mode = mode
+        self.character = character
         self.panel = panel = wx.Panel(self, wx.ID_ANY)
-
+        self.ID=ID
         self.orderName = ""
         self.customerName = ""
         self.customerInfo = ""
@@ -708,13 +733,13 @@ class DraftOrderPanel(wx.Panel):
         self.techRequireDocName = ""
         self.makeOrderDate = wx.DateTime.Now()
         self.bidDate = pydate2wxdate(datetime.date.today() + datetime.timedelta(days=7))
-        if ID != None:
-            ID = int(ID)
+        if self.ID != None:
+            self.ID = int(self.ID)
 
         if self.mode=="NEW":
             pass
         else:
-            _,dic = GetDraftOrderDetailByID(self.log,WHICHDB,ID)
+            _,dic = GetDraftOrderDetailByID(self.log,WHICHDB,self.ID)
             self.makeOrderDate = str2wxdate(dic["下单时间"])
             self.bidDate = str2wxdate(dic["投标时间"])
             self.orderName = dic["订单名称"]
@@ -743,10 +768,10 @@ class DraftOrderPanel(wx.Panel):
         # Show help as tooltips
         pg.ExtraStyle |= wxpg.PG_EX_HELP_AS_TOOLTIPS
 
-        pg.Bind( wxpg.EVT_PG_CHANGED, self.OnPropGridChange )
-        pg.Bind( wxpg.EVT_PG_PAGE_CHANGED, self.OnPropGridPageChange )
-        pg.Bind( wxpg.EVT_PG_SELECTED, self.OnPropGridSelect )
-        pg.Bind( wxpg.EVT_PG_RIGHT_CLICK, self.OnPropGridRightClick )
+        # pg.Bind( wxpg.EVT_PG_CHANGED, self.OnPropGridChange )
+        # pg.Bind( wxpg.EVT_PG_PAGE_CHANGED, self.OnPropGridPageChange )
+        # pg.Bind( wxpg.EVT_PG_SELECTED, self.OnPropGridSelect )
+        # pg.Bind( wxpg.EVT_PG_RIGHT_CLICK, self.OnPropGridRightClick )
 
 
 
@@ -799,9 +824,43 @@ class DraftOrderPanel(wx.Panel):
             pg.SetPropertyAttribute( "1.投标日期", wxpg.PG_DATE_PICKER_STYLE,
                                      wx.adv.DP_DROPDOWN|wx.adv.DP_SHOWCENTURY )
             topsizer.Add(pg, 1, wx.EXPAND)
+            if self.character == "下单员":
+                rowsizer = wx.BoxSizer(wx.HORIZONTAL)
+                but = wx.Button(panel, -1, "保存修改", size=(-1, 35))
+                but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
+                rowsizer.Add(but, 1)
+                but = wx.Button(panel, -1, "取消修改", size=(-1, 35))
+                but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditCancelBTN)
+                rowsizer.Add(but, 1)
+                topsizer.Add(rowsizer, 0, wx.EXPAND)
+                rowsizer = wx.BoxSizer(wx.HORIZONTAL)
+                but = wx.Button(panel, -1, "订单废弃", size=(-1, 35))
+                # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
+                rowsizer.Add(but, 1)
+                but = wx.Button(panel, -1, "订单投产", size=(-1, 35))
+                # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditCancelBTN)
+                rowsizer.Add(but, 1)
+                topsizer.Add(rowsizer, 0, wx.EXPAND)
+                rowsizer = wx.BoxSizer(wx.HORIZONTAL)
+                but = wx.Button(panel, -1, "生成报价单", size=(-1, 35))
+                # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
+                rowsizer.Add(but, 1)
+                topsizer.Add(rowsizer, 0, wx.EXPAND)
+                # btnsizer = wx.BoxSizer()
+                # bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
+                # bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
+                # bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
+                # btn_ok = wx.Button(self.orderEditPanel, wx.ID_OK, "确 认 修 改", size=(200, 50))
+                # btn_ok.Bind(wx.EVT_BUTTON,self.OnDraftOrderEditOkBTN)
+                # btn_ok.SetBitmap(bitmap1, wx.LEFT)
+                # btnsizer.Add(btn_ok, 0)
+                # btnsizer.Add((40, -1), 0)
+                # sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+                # self.orderEditPanel.SetSizer(sizer)
+                # sizer.Fit(self.orderEditPanel)
         else:
             techDrawingName = self.techDrawingName.split("\\")[-1]
-            techDrawingName = "%d."%ID+techDrawingName
+            techDrawingName = "%d."%self.ID+techDrawingName
             pg.Append( wxpg.LongStringProperty("1.技术图纸文件",value=techDrawingName))
             pg.SetPropertyEditor("1.技术图纸文件", "TechDrawingButtonEditor")
             pg.Append( wxpg.LongStringProperty("2.保密协议文档",value="1234.pdf"))
@@ -811,6 +870,37 @@ class DraftOrderPanel(wx.Panel):
             pg.Append( wxpg.LongStringProperty("4.技术要求文档",value="1234.pdf"))
             pg.SetPropertyEditor("4.技术要求文档", "SampleMultiButtonEditor")
             topsizer.Add(pg, 1, wx.EXPAND)
+            rowsizer = wx.BoxSizer(wx.HORIZONTAL)
+            print("character=",self.character)
+            if self.character == "技术员":
+                but = wx.Button(panel,-1,"开始技术审核",size=(-1,35))
+                but.Bind( wx.EVT_BUTTON, self.OnStartTechCheck)
+                rowsizer.Add(but,1)
+                but = wx.Button(panel,-1,"完成技术审核",size=(-1,35))
+                but.Bind( wx.EVT_BUTTON, self.OnFinishTechCheck)
+                rowsizer.Add(but,1)
+            elif self.character == "采购员":
+                but = wx.Button(panel,-1,"开始采购审核",size=(-1,35))
+                but.Bind( wx.EVT_BUTTON, self.OnStartPurchaseCheck)
+                rowsizer.Add(but,1)
+                but = wx.Button(panel,-1,"完成采购审核",size=(-1,35))
+                but.Bind( wx.EVT_BUTTON, self.OnFinishPurchaseCheck)
+                rowsizer.Add(but,1)
+            elif self.character == "财务":
+                but = wx.Button(panel,-1,"开始财务审核",size=(-1,35))
+                but.Bind( wx.EVT_BUTTON, self.OnStartFinancialCheck)
+                rowsizer.Add(but,1)
+                but = wx.Button(panel,-1,"完成财务审核",size=(-1,35))
+                but.Bind( wx.EVT_BUTTON, self.OnFinishFinancialCheck)
+                rowsizer.Add(but,1)
+            elif self.character == "经理":
+                but = wx.Button(panel,-1,"开始经理审核",size=(-1,35))
+                but.Bind( wx.EVT_BUTTON, self.OnStartManagerCheck)
+                rowsizer.Add(but,1)
+                but = wx.Button(panel,-1,"完成经理审核",size=(-1,35))
+                but.Bind( wx.EVT_BUTTON, self.OnFinishManagerCheck)
+                rowsizer.Add(but,1)
+            topsizer.Add(rowsizer,0,wx.EXPAND)
 
         # pg.AddPage( "技术部审核信息" )
         # pg.Append( wxpg.PropertyCategory("1 - 订单基本信息2") )
@@ -896,14 +986,6 @@ class DraftOrderPanel(wx.Panel):
 
 
         # rowsizer = wx.BoxSizer(wx.HORIZONTAL)
-        # but = wx.Button(panel,-1,"SetPropertyValues")
-        # but.Bind( wx.EVT_BUTTON, self.OnSetPropertyValues )
-        # rowsizer.Add(but,1)
-        # but = wx.Button(panel,-1,"GetPropertyValues")
-        # but.Bind( wx.EVT_BUTTON, self.OnGetPropertyValues )
-        # rowsizer.Add(but,1)
-        # topsizer.Add(rowsizer,0,wx.EXPAND)
-        # rowsizer = wx.BoxSizer(wx.HORIZONTAL)
         # but = wx.Button(panel,-1,"GetPropertyValues(as_strings=True)")
         # but.Bind( wx.EVT_BUTTON, self.OnGetPropertyValues2 )
         # rowsizer.Add(but,1)
@@ -928,170 +1010,490 @@ class DraftOrderPanel(wx.Panel):
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
 
-    def OnPropGridChange(self, event):
-        p = event.GetProperty()
-        if p:
-            self.log.write('%s changed to "%s"\n' % (p.GetName(),p.GetValueAsString()))
+    def OnDraftOrderEditOkBTN(self,event):
+        d = self.pg.GetPropertyValues(inc_attributes=True)
+        dic = {}
+        for k, v in d.items():
+            dic[k] = v
 
-    def OnPropGridSelect(self, event):
-        p = event.GetProperty()
-        if p:
-            self.log.write('%s selected\n' % (event.GetProperty().GetName()))
+        # operatorID = self.parent.parent.operatorID
+        for key in dic.keys():
+            if dic[key]=="" and '*' in key:
+                wx.MessageBox("%s不能为空，请重新输入！"%key)
+                return
+        code = UpdateDraftOrderInfoByID(self.log,WHICHDB,dic,self.ID)
+        if code>0:
+            wx.MessageBox("更新成功！")
         else:
-            self.log.write('Nothing selected\n')
+            wx.MessageBox("更新失败！")
+        self.parent.ReCreate()
 
-    def OnDeleteProperty(self, event):
-        p = self.pg.GetSelectedProperty()
-        if p:
-            self.pg.DeleteProperty(p)
-        else:
-            wx.MessageBox("First select a property to delete")
+    def OnDraftOrderEditCancelBTN(self,event):
+        pass
+        # self.ReCreate()
 
-    def OnReserved(self, event):
+    def OnStartManagerCheck(self,event):
+        self.draftCheckFrame = DraftCheckFrame(self, self.log,self.ID,character="经理")
+        self.draftCheckFrame.Show(True)
+        self.draftCheckFrame.CenterOnScreen()
+
+    def OnFinishManagerCheck(self,event):
         pass
 
-    def OnSetPropertyValues(self,event):
-        try:
-            d = self.pg.GetPropertyValues(inc_attributes=True)
+    def OnStartFinancialCheck(self,event):
+        self.draftCheckFrame = DraftCheckFrame(self, self.log,self.ID,character="财务")
+        self.draftCheckFrame.Show(True)
+        self.draftCheckFrame.CenterOnScreen()
 
-            ss = []
-            for k,v in d.items():
-                v = repr(v)
-                if not v or v[0] != '<':
-                    if k.startswith('@'):
-                        ss.append('setattr(obj, "%s", %s)'%(k,v))
-                    else:
-                        ss.append('obj.%s = %s'%(k,v))
+    def OnFinishFinancialCheck(self,event):
+        pass
 
-            with MemoDialog(self,
-                    "Enter Content for Object Used in SetPropertyValues",
-                    '\n'.join(ss)) as dlg:  # default_object_content1
+    def OnStartPurchaseCheck(self,event):
+        self.draftCheckFrame = DraftCheckFrame(self, self.log,self.ID,character="采购员")
+        self.draftCheckFrame.Show(True)
+        self.draftCheckFrame.CenterOnScreen()
 
-                if dlg.ShowModal() == wx.ID_OK:
-                    import datetime
-                    sandbox = {'obj':ValueObject(),
-                               'wx':wx,
-                               'datetime':datetime}
-                    exec_(dlg.tc.GetValue(), sandbox)
-                    t_start = time.time()
-                    #print(sandbox['obj'].__dict__)
-                    self.pg.SetPropertyValues(sandbox['obj'])
-                    t_end = time.time()
-                    self.log.write('SetPropertyValues finished in %.0fms\n' %
-                                   ((t_end-t_start)*1000.0))
-        except:
-            import traceback
-            traceback.print_exc()
+    def OnFinishPurchaseCheck(self,event):
+        pass
 
-    def OnGetPropertyValues(self,event):
-        try:
-            t_start = time.time()
-            d = self.pg.GetPropertyValues(inc_attributes=True)
-            t_end = time.time()
-            self.log.write('GetPropertyValues finished in %.0fms\n' %
-                           ((t_end-t_start)*1000.0))
-            ss = ['%s: %s'%(k,repr(v)) for k,v in d.items()]
-            self.propertyDic={}
-            for k,v in d.items():
-                self.propertyDic[k]=v
-            with MemoDialog(self,"GetPropertyValues Result",
-                           'Contents of resulting dictionary:\n\n'+'\n'.join(ss)) as dlg:
-                dlg.ShowModal()
+    def OnStartTechCheck(self,event):
+        self.techCheckFrame = TechCheckFrame(self, self.log,self.ID,character="技术员")
+        self.techCheckFrame.Show(True)
+        self.techCheckFrame.CenterOnScreen()
+        # dlg = wx.Dialog(self,title="技术审核对话框——订单%05d"%self.ID,size=(1500,800))
+        # vbox = wx.BoxSizer(wx.VERTICAL)
+        # techCheckPanel = TechCheckPanel(dlg,self.log,self.ID,character=self.character)
+        # vbox.Add(techCheckPanel,1,wx.EXPAND)
+        # buttonPanel = wx.Panel(dlg,size=(-1,50))
+        # vbox.Add(buttonPanel,0,wx.EXPAND)
+        # dlg.SetSizer(vbox)
+        # dlg.Layout()
+        # dlg.CenterOnScreen()
+        # dlg.ShowModal()
+        # dlg.Destroy()
 
-        except:
-            import traceback
-            traceback.print_exc()
+    def OnFinishTechCheck(self,event):
+        pass
 
-    def OnGetPropertyValues2(self,event):
-        try:
-            t_start = time.time()
-            d = self.pg.GetPropertyValues(as_strings=True)
-            t_end = time.time()
-            self.log.write('GetPropertyValues(as_strings=True) finished in %.0fms\n' %
-                           ((t_end-t_start)*1000.0))
-            ss = ['%s: %s'%(k,repr(v)) for k,v in d.items()]
-            with MemoDialog(self,"GetPropertyValues Result",
-                           'Contents of resulting dictionary:\n\n'+'\n'.join(ss)) as dlg:
-                dlg.ShowModal()
-        except:
-            import traceback
-            traceback.print_exc()
+class WallPanelCheckGrid(gridlib.Grid):
+    def __init__(self, parent, log, type,id):
+        gridlib.Grid.__init__(self, parent, -1)
+        self.log = log
+        self.type = type
+        self.id = id
+        if self.type == "WALL":
+            data = GetDraftWallInfoByID(self.log,WHICHDB,self.id)
+        self.data = []
+        for dic in data:
+            temp = []
+            for section in WallCheckEnableSectionList:
+                temp.append(dic[section])
+            self.data.append(temp)
 
-    def OnAutoFill(self,event):
-        try:
-            with MemoDialog(self,"Enter Content for Object Used for AutoFill",default_object_content1) as dlg:
-                if dlg.ShowModal() == wx.ID_OK:
-                    sandbox = {'object':ValueObject(),'wx':wx}
-                    exec_(dlg.tc.GetValue(), sandbox)
-                    t_start = time.time()
-                    self.pg.AutoFill(sandbox['object'])
-                    t_end = time.time()
-                    self.log.write('AutoFill finished in %.0fms\n' %
-                                   ((t_end-t_start)*1000.0))
-        except:
-            import traceback
-            traceback.print_exc()
+        self.SetDefaultRowSize(30)
+        self.table = WallPanelCheckDataTable(log,self.type,self.data)
 
-    def OnPropGridRightClick(self, event):
-        p = event.GetProperty()
-        if p:
-            self.log.write('%s right clicked\n' % (event.GetProperty().GetName()))
-        else:
-            self.log.write('Nothing right clicked\n')
+        # The second parameter means that the grid is to take ownership of the
+        # table and will destroy it when done.  Otherwise you would need to keep
+        # a reference to it and call it's Destroy method later.
+        self.SetTable(self.table, True)
 
-    def OnPropGridPageChange(self, event):
-        index = self.pg.GetSelectedPage()
-        self.log.write('Page Changed to \'%s\'\n' % (self.pg.GetPageName(index)))
+        self.SetRowLabelSize(80)
+        self.SetColLabelSize(60)
+        self.SetMargins(0,0)
+        self.AutoSizeColumns(False)
 
-    def RunTests(self, event):
-        pg = self.pg
-        log = self.log
 
-        # Validate client data
-        log.write('Testing client data set/get')
-        pg.SetPropertyClientData( "Bool", 1234 )
-        if pg.GetPropertyClientData( "Bool" ) != 1234:
-            raise ValueError("Set/GetPropertyClientData() failed")
-
-        # Test setting unicode string
-        log.write('Testing setting an unicode string value')
-        pg.GetPropertyByName("String").SetValue(u"Some Unicode Text")
-
+        self.Bind(gridlib.EVT_GRID_CELL_LEFT_DCLICK, self.OnLeftDClick)
+        self.colLabels = CheckTitleDict[self.type]
+        self.colWidths = CheckColWidthDict[self.type]
+        for i, title in enumerate(self.colLabels):
+            self.SetColSize(i,self.colWidths[i])
         #
-        # Test some code that *should* fail (but not crash)
+        for i, row in enumerate(self.data):
+            for j, col in enumerate(row):
+                # self.SetCellBackgroundColour(i, j, wx.BLUE)
+                self.SetCellAlignment(i,j,wx.ALIGN_CENTRE,wx.ALIGN_CENTRE)
+                # self.SetCellFont(i, j, wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        for j in range(len(self.data[0])):
+            self.SetCellAlignment(len(self.data),j,wx.ALIGN_CENTRE,wx.ALIGN_CENTRE)
+    # I do this because I don't like the default behaviour of not starting the
+    # cell editor on double clicks, but only a second click.
+    def OnLeftDClick(self, evt):
+        if self.CanEnableCellControl():
+            self.EnableCellEditControl()
+
+class DraftCheckFrame(wx.Frame):
+    def __init__(self, parent, log,id,character):
+        self.parent = parent
+        self.log = log
+        self.id = id
+        self.character = character
+        wx.Frame.__init__(
+            self, parent, -1, "%s审核窗口 —— %05d"%(self.character[:-1],self.id), size=(1200,800)
+        )
+        self.SetBackgroundColour(wx.Colour(240,240,240))
+        self.Freeze()
+        self.notebook = wx.Notebook(self, -1, size=(21, 21), style=
+                                    # wx.BK_DEFAULT
+                                    # wx.BK_TOP
+                                    wx.BK_BOTTOM
+                                    # wx.BK_LEFT
+                                    # wx.BK_RIGHT
+                                    # | wx.NB_MULTILINE
+                                    )
+        il = wx.ImageList(16, 16)
+        idx1 = il.Add(images._rt_smiley.GetBitmap())
+        self.total_page_num = 0
+        self.notebook.AssignImageList(il)
+        idx2 = il.Add(images.GridBG.GetBitmap())
+        idx3 = il.Add(images.Smiles.GetBitmap())
+        idx4 = il.Add(images._rt_undo.GetBitmap())
+        idx5 = il.Add(images._rt_save.GetBitmap())
+        idx6 = il.Add(images._rt_redo.GetBitmap())
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        vbox.Add(self.notebook, 1, wx.EXPAND)
+        hhbox = wx.BoxSizer()
+        saveBTN = wx.Button(self, -1, "保存",size=(100,45))
+        saveBTN.SetDefault()
+        saveBTN.Bind(wx.EVT_BUTTON, self.OnSaveBTN)
+        hhbox.Add(saveBTN,1,wx.ALL,10)
+        saveExitBTN = wx.Button(self, -1, "保存并退出",size=(100,45))
+        saveExitBTN.Bind(wx.EVT_BUTTON, self.OnSaveExitBTN)
+        hhbox.Add(saveExitBTN,1,wx.ALL,10)
+        cancelBTN = wx.Button(self, -1, "取消",size=(100,45))
+        cancelBTN.Bind(wx.EVT_BUTTON, self.OnCancelBTN)
+        hhbox.Add(cancelBTN,1,wx.ALL,10)
+        vbox.Add(hhbox,0,wx.EXPAND)
+        self.SetSizer(vbox)
+        self.Layout()
+        self.wallCheckPanel = wx.Panel(self.notebook)
+        self.notebook.AddPage(self.wallCheckPanel, "TNF Wall Panel")
+        self.ceilingCheckPanel = wx.Panel(self.notebook)
+        self.notebook.AddPage(self.ceilingCheckPanel, "TNF Ceiling Panel")
+        self.interiorDoorCheckPanel = wx.Panel(self.notebook)
+        self.notebook.AddPage(self.interiorDoorCheckPanel, "TNF Interior Door")
+        self.doorAccessoryCheckPanel = wx.Panel(self.notebook)
+        self.notebook.AddPage(self.doorAccessoryCheckPanel, "TNF Door Accessory")
+        self.wetUnitCheckPanel = wx.Panel(self.notebook)
+        self.notebook.AddPage(self.wetUnitCheckPanel, "TNF Wet Unit")
+        self.Thaw()
+
+        # p = wx.Panel(self, -1, style=0)
+        hbox = wx.BoxSizer()
+        self.wallPanelCheckGrid = WallPanelCheckGrid(self.wallCheckPanel, self.log, type="WALL",id=self.id)
+        hbox.Add(self.wallPanelCheckGrid, 1, wx.EXPAND)
+        self.wallCheckPanel.SetSizer(hbox)
+        self.wallCheckPanel.Layout()
+
+    def OnSaveExitBTN(self,evt):
+        error=self.Save()
+        if not error:
+            self.Close()
+        evt.Skip()
+
+    def OnCancelBTN(self,evt):
+        self.Close()
+        evt.Skip()
+
+    def OnSaveBTN(self, evt):
+        self.Save()
+        evt.Skip()
+
+    def Save(self):
+        rowNum = self.wallPanelCheckGrid.table.GetNumberRows()
+        colNum = self.wallPanelCheckGrid.table.GetNumberCols()
+        data=[]
+        error=False
+        for i in range(rowNum-1):
+            temp = ["WALL"]
+            for j in range(colNum):
+                temp.append(self.wallPanelCheckGrid.table.GetValue(i,j))
+            data.append(temp)
+        self.wallDataDicList = self.MakeDicListData(data,"WALL")
+        for row,dics in enumerate(self.wallDataDicList):
+            for col,section in enumerate(WallCheckEnableSectionList):
+                if dics[section] == '':
+                    self.wallPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,200,200))
+                    self.wallPanelCheckGrid.Refresh()
+                    wx.MessageBox("'%s'字段不能为空！"%section,"信息提示")
+                    return True
+                else:
+                    self.wallPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,255,255))
+                    self.wallPanelCheckGrid.Refresh()
+        UpdateDrafCheckInfoByID(self.log,WHICHDB,self.id,self.wallDataDicList)
+        return False
+
+    def MakeDicListData(self,data,type):
+        dicList=[]
+        if type=="WALL":
+            sectionList=copy.deepcopy(WallCheckEnableSectionList)
+            sectionList.insert(0,"类别")
+            dicList = [dict(zip(sectionList, row)) for row in data]
+        return dicList
+
+class TechCheckFrame(wx.Frame):
+    def __init__(self, parent, log,id,character):
+        self.parent = parent
+        self.log = log
+        self.id = id
+        self.character = character
+        wx.Frame.__init__(
+            self, parent, -1, "技术审核窗口 —— %05d"%self.id, size=(1200,800)
+        )
+        self.SetBackgroundColour(wx.Colour(240,240,240))
+        self.Freeze()
+        self.notebook = wx.Notebook(self, -1, size=(21, 21), style=
+                                    # wx.BK_DEFAULT
+                                    # wx.BK_TOP
+                                    wx.BK_BOTTOM
+                                    # wx.BK_LEFT
+                                    # wx.BK_RIGHT
+                                    # | wx.NB_MULTILINE
+                                    )
+        il = wx.ImageList(16, 16)
+        idx1 = il.Add(images._rt_smiley.GetBitmap())
+        self.total_page_num = 0
+        self.notebook.AssignImageList(il)
+        idx2 = il.Add(images.GridBG.GetBitmap())
+        idx3 = il.Add(images.Smiles.GetBitmap())
+        idx4 = il.Add(images._rt_undo.GetBitmap())
+        idx5 = il.Add(images._rt_save.GetBitmap())
+        idx6 = il.Add(images._rt_redo.GetBitmap())
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        vbox.Add(self.notebook, 1, wx.EXPAND)
+        hhbox = wx.BoxSizer()
+        saveBTN = wx.Button(self, -1, "保存",size=(100,45))
+        saveBTN.SetDefault()
+        saveBTN.Bind(wx.EVT_BUTTON, self.OnSaveBTN)
+        hhbox.Add(saveBTN,1,wx.ALL,10)
+        saveExitBTN = wx.Button(self, -1, "保存并退出",size=(100,45))
+        saveExitBTN.Bind(wx.EVT_BUTTON, self.OnSaveExitBTN)
+        hhbox.Add(saveExitBTN,1,wx.ALL,10)
+        cancelBTN = wx.Button(self, -1, "取消",size=(100,45))
+        cancelBTN.Bind(wx.EVT_BUTTON, self.OnCancelBTN)
+        hhbox.Add(cancelBTN,1,wx.ALL,10)
+        vbox.Add(hhbox,0,wx.EXPAND)
+        self.SetSizer(vbox)
+        self.Layout()
+        self.wallCheckPanel = wx.Panel(self.notebook)
+        self.notebook.AddPage(self.wallCheckPanel, "TNF Wall Panel")
+        self.ceilingCheckPanel = wx.Panel(self.notebook)
+        self.notebook.AddPage(self.ceilingCheckPanel, "TNF Ceiling Panel")
+        self.interiorDoorCheckPanel = wx.Panel(self.notebook)
+        self.notebook.AddPage(self.interiorDoorCheckPanel, "TNF Interior Door")
+        self.doorAccessoryCheckPanel = wx.Panel(self.notebook)
+        self.notebook.AddPage(self.doorAccessoryCheckPanel, "TNF Door Accessory")
+        self.wetUnitCheckPanel = wx.Panel(self.notebook)
+        self.notebook.AddPage(self.wetUnitCheckPanel, "TNF Wet Unit")
+        self.Thaw()
+
+        # p = wx.Panel(self, -1, style=0)
+        hbox = wx.BoxSizer()
+        self.wallPanelCheckGrid = WallPanelCheckGrid(self.wallCheckPanel, self.log, type="WALL",id=self.id)
+        hbox.Add(self.wallPanelCheckGrid, 1, wx.EXPAND)
+        self.wallCheckPanel.SetSizer(hbox)
+        self.wallCheckPanel.Layout()
+
+    def OnSaveExitBTN(self,evt):
+        error=self.Save()
+        if not error:
+            self.Close()
+        evt.Skip()
+
+    def OnCancelBTN(self,evt):
+        self.Close()
+        evt.Skip()
+
+    def OnSaveBTN(self, evt):
+        self.Save()
+        evt.Skip()
+
+    def Save(self):
+        rowNum = self.wallPanelCheckGrid.table.GetNumberRows()
+        colNum = self.wallPanelCheckGrid.table.GetNumberCols()
+        data=[]
+        error=False
+        for i in range(rowNum-1):
+            temp = ["WALL"]
+            for j in range(colNum):
+                temp.append(self.wallPanelCheckGrid.table.GetValue(i,j))
+            data.append(temp)
+        self.wallDataDicList = self.MakeDicListData(data,"WALL")
+        for row,dics in enumerate(self.wallDataDicList):
+            for col,section in enumerate(WallCheckEnableSectionList):
+                if dics[section] == '':
+                    self.wallPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,200,200))
+                    self.wallPanelCheckGrid.Refresh()
+                    wx.MessageBox("'%s'字段不能为空！"%section,"信息提示")
+                    return True
+                else:
+                    self.wallPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,255,255))
+                    self.wallPanelCheckGrid.Refresh()
+        UpdateDrafCheckInfoByID(self.log,WHICHDB,self.id,self.wallDataDicList)
+        return False
+
+    def MakeDicListData(self,data,type):
+        dicList=[]
+        if type=="WALL":
+            sectionList=copy.deepcopy(WallCheckEnableSectionList)
+            sectionList.insert(0,"类别")
+            dicList = [dict(zip(sectionList, row)) for row in data]
+        return dicList
+
+class WallPanelCheckDataTable(gridlib.GridTableBase):
+    def __init__(self, log ,type,data):
+        gridlib.GridTableBase.__init__(self)
+        self.log = log
+        self.type = type
+
+        self.colLabels = CheckTitleDict[self.type]
+
+        self.dataTypes = [
+                          gridlib.GRID_VALUE_CHOICE + ':TNF-2SF,TNF-2SA,TNF-2SG',
+                          gridlib.GRID_VALUE_CHOICE + ':B15 Lining,Wet,B15 Partition',
+                          gridlib.GRID_VALUE_CHOICE + ':PVC/G,PVC/PVC,S.S(304)/G,S.S(304)/S.S(304)',
+                          gridlib.GRID_VALUE_NUMBER,
+                          gridlib.GRID_VALUE_NUMBER,
+                          gridlib.GRID_VALUE_CHOICE + ':25,50,100',
+                          gridlib.GRID_VALUE_CHOICE + ':m2,pcs',
+                          gridlib.GRID_VALUE_FLOAT + ':6,2',
+                          gridlib.GRID_VALUE_FLOAT + ':6,2',
+                          gridlib.GRID_VALUE_FLOAT + ':6,2',
+                          ]
+        self.data = data
+        # colWidthList = CheckColWidthDict[type]
+        # for i, width in enumerate(colWidthList):
+        #     self.SetColLabelValue()
+
+    #--------------------------------------------------
+    # required methods for the wxPyGridTableBase interface
+
+    def GetNumberRows(self):
+        return len(self.data) + 1
+
+    def GetNumberCols(self):
+        return len(self.data[0])
+
+    def IsEmptyCell(self, row, col):
         try:
-            if wx.GetApp().GetAssertionMode() == wx.PYAPP_ASSERT_EXCEPTION:
-                log.write('Testing exception handling compliancy')
-                a_ = pg.GetPropertyValue( "NotARealProperty" )
-                pg.EnableProperty( "NotAtAllRealProperty", False )
-                pg.SetPropertyHelpString("AgaintNotARealProperty",
-                                         "Dummy Help String" )
-        except:
-            pass
+            return not self.data[row][col]
+        except IndexError:
+            return True
 
-        # GetPyIterator
-        log.write('GetPage(0).GetPyIterator()\n')
-        it = pg.GetPage(0).GetPyIterator(wxpg.PG_ITERATE_ALL)
-        for prop in it:
-            log.write('Iterating \'%s\'\n' % (prop.GetName()))
+    # Get/Set values in the table.  The Python version of these
+    # methods can handle any data-type, (as long as the Editor and
+    # Renderer understands the type too,) not just strings as in the
+    # C++ version.
+    def GetValue(self, row, col):
+        try:
+            return self.data[row][col]
+        except IndexError:
+            return ''
 
-        # VIterator
-        log.write('GetPyVIterator()\n')
-        it = pg.GetPyVIterator(wxpg.PG_ITERATE_ALL)
-        for prop in it:
-            log.write('Iterating \'%s\'\n' % (prop.GetName()))
+    def SetValue(self, row, col, value):
+        def innerSetValue(row, col, value):
+            try:
+                self.data[row][col] = value
+            except IndexError:
+                # add a new row
+                self.data.append([''] * self.GetNumberCols())
+                innerSetValue(row, col, value)
 
-        # Properties
-        log.write('GetPage(0).Properties\n')
-        it = pg.GetPage(0).Properties
-        for prop in it:
-            log.write('Iterating \'%s\'\n' % (prop.GetName()))
+                # tell the grid we've added a row
+                msg = gridlib.GridTableMessage(self,            # The table
+                        gridlib.GRIDTABLE_NOTIFY_ROWS_APPENDED, # what we did to it
+                        1                                       # how many
+                        )
 
-        # Items
-        log.write('GetPage(0).Items\n')
-        it = pg.GetPage(0).Items
-        for prop in it:
-            log.write('Iterating \'%s\'\n' % (prop.GetName()))
+                self.GetView().ProcessTableMessage(msg)
+        innerSetValue(row, col, value)
+
+    #--------------------------------------------------
+    # Some optional methods
+
+    # Called when the grid needs to display labels
+    def GetColLabelValue(self, col):
+        return self.colLabels[col]
+
+    # Called to determine the kind of editor/renderer to use by
+    # default, doesn't necessarily have to be the same type used
+    # natively by the editor/renderer if they know how to convert.
+    def GetTypeName(self, row, col):
+        return self.dataTypes[col]
+
+    # Called to determine how the data can be fetched and stored by the
+    # editor and renderer.  This allows you to enforce some type-safety
+    # in the grid.
+    def CanGetValueAs(self, row, col, typeName):
+        colType = self.dataTypes[col].split(':')[0]
+        if typeName == colType:
+            return True
+        else:
+            return False
+
+    def CanSetValueAs(self, row, col, typeName):
+        return self.CanGetValueAs(row, col, typeName)
+
+# class CheckGrid(gridlib.Grid):
+#     def __init__(self, parent, log, type, id, character="技术员"):
+#         gridlib.Grid.__init__(self, parent, -1)
+#         self.Freeze()
+#         self.log = log
+#         table = WallPanelCheckDataTable(log)
+#
+#         # The second parameter means that the grid is to take ownership of the
+#         # table and will destroy it when done.  Otherwise you would need to keep
+#         # a reference to it and call it's Destroy method later.
+#         self.SetTable(table, True)
+#
+#         self.SetRowLabelSize(0)
+#         self.SetMargins(0, 0)
+#         self.AutoSizeColumns(False)
+#
+#         self.Bind(gridlib.EVT_GRID_CELL_LEFT_DCLICK, self.OnLeftDClick)
+#
+#     def OnLeftDClick(self, evt):
+#         if self.CanEnableCellControl():
+#             self.EnableCellEditControl()
+#
+#         # self.SetColLabelAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE_VERTICAL)
+#         #
+#         # self.SetRowLabelSize(50)
+#         # self.SetColLabelSize(25)
+#         #
+#         # titleList = CheckTitleDict[type]
+#         # for i, title in enumerate(titleList):
+#         #     self.SetColLabelValue(i,title)
+#         # colWidthList = CheckColWidthDict[type]
+#         # for i, width in enumerate(colWidthList):
+#         #     self.SetColSize(i, width)
+#         #
+#         # for i, order in enumerate(self.master.dataArray):
+#         #     self.SetRowSize(i, 25)
+#         #     for j, item in enumerate(order):#z最后一列位子订单列表，不再grid上显示
+#         #         # self.SetCellBackgroundColour(i,j,wx.Colour(250, 250, 250))
+#         #         self.SetCellAlignment(i, j, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE_VERTICAL)
+#         #         self.SetCellValue(i, j, str(item))
+#         #         if j==0:
+#         #             if int(order[0])<2:
+#         #                 self.SetCellBackgroundColour(i,j,wx.RED)
+#         #             elif int(order[0])<5:
+#         #                 self.SetCellBackgroundColour(i,j,wx.YELLOW)
+#         #         elif j>=9:
+#         #             if item=="未审核":
+#         #                 self.SetCellBackgroundColour(i,j,wx.RED)
+#         #             elif item =="审核通过":
+#         #                 self.SetCellBackgroundColour(i,j,wx.GREEN)
+#         #             else:
+#         #                 self.SetCellBackgroundColour(i,j,wx.YELLOW)
+#
+#     def OnIdle(self, evt):
+#         if self.moveTo is not None:
+#             self.SetGridCursor(self.moveTo[0], self.moveTo[1])
+#             self.moveTo = None
+#
+#         evt.Skip()
 
 class CreateNewOrderDialog(wx.Dialog):
     def __init__(self, parent,log, size=wx.DefaultSize, pos=wx.DefaultPosition,
@@ -1103,7 +1505,7 @@ class CreateNewOrderDialog(wx.Dialog):
         self.SetExtraStyle(wx.DIALOG_EX_METAL)
         self.Create(parent, -1, "新建订单对话框", pos, size, style)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.propertyPanel = DraftOrderPanel(self, self.log, size=(600, 600))
+        self.propertyPanel = DraftOrderPanel(self, self.log, size=(600, 600),character="下单员")
         sizer.Add(self.propertyPanel,1,wx.EXPAND)
         line = wx.StaticLine(self, -1, size=(30, -1), style=wx.LI_HORIZONTAL)
         sizer.Add(line, 0, wx.GROW | wx.RIGHT | wx.TOP, 5)
@@ -1167,7 +1569,6 @@ class TechDrawingButtonEditor(wxpg.PGTextCtrlEditor):
         self.fileName = property.GetValue().split('.')[-2]+'.'+self.fileType
         self.id = property.GetValue().split('.')[0]
         self.fileData = GetTechDrawingDataByID(None,WHICHDB,self.id)
-        print("id=",self.id)
         # Create and populate buttons-subwindow
         buttons = wxpg.PGMultiButton(propGrid, sz)
         # Add two regular buttons
@@ -1229,7 +1630,6 @@ class TechDrawingButtonEditor(wxpg.PGTextCtrlEditor):
                 # This is done by getting the path data from the dialog - BEFORE
                 # we destroy it.
                 if dlg.ShowModal() == wx.ID_OK:
-                    print('You selected: %s\n' % dlg.GetPath())
                     with open(dlg.GetPath()+"\\"+self.fileName, 'wb') as fp:
                         fp.write(self.fileData)
                         fp.close

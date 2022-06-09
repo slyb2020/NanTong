@@ -32,8 +32,14 @@ orderDetailLabelList=['Index','订单号','子订单','甲板','区域','房间'
 orderDetailColSizeList = [30,40,50,35,35,50,70,80,60,60,40,40,40,40,50,50,70,70]
 orderWorkingStateList = ['接单','排产','下料','加工','打包','发货']
 
+WallCheckEnableSectionList = ['产品名称', '产品型号', '产品表面材料', '产品长度', '产品宽度', '产品厚度', '单位', '数量']
 BIDMODE = ['wxPython Rules', 'wxPython Rocks', 'wxPython Is The Best']
 BIDMETHOD = ['离岸价', '到岸价']
+
+CheckTitleDict={"WALL":['Procuct \r\nNo.', 'Product \r\nType', 'Product \r\nSurface', 'Product \r\nHeight/Length (mm)',
+                        'Procuct \r\nNo.Wdith (mm)', 'Procuct \r\nNo.Thickness (mm)', 'Unit', 'Total \r\nQuantity',]
+                        }
+CheckColWidthDict = {'WALL':[125,125,160,150,150,150,80,150]}
 WALL = 0
 CEILING = 1
 CONSTRUCTION = 2
