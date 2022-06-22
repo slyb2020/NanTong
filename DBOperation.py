@@ -230,9 +230,9 @@ def UpdateDraftOrderInfoByID(log, whichDB,dic,id):
         result=-1
     length = len(data)
     if length%(1024*1024)>0:
-        times = length/(1024*1024)+1
+        times = int(length/(1024*1024))+1
     else:
-        times = length/(1024*1024)
+        times = int(length/(1024*1024))
     if times>2:
         times=2
     for i in range(times):
@@ -245,6 +245,17 @@ def UpdateDraftOrderInfoByID(log, whichDB,dic,id):
             print("error图")
             db.rollback()
             result=-1
+    if times<2:#这部分代码是清空这次没用的存储字段
+        for i in range(times,2):
+            temp = ""
+            sql = "UPDATE `订单信息` SET `图%s`= '%s' where `Index`= %s " % (i, temp, id)
+            try:
+                cursor.execute(sql)
+                db.commit()  # 必须有，没有的话插入语句不会执行
+            except:
+                print("error图")
+                db.rollback()
+                result = -1
     db.close()
     return result
 
@@ -813,7 +824,7 @@ def CreatePackagePanelSheetForOrder(log,whichDB,newOrderID):
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
-        print("error new")
+        print("error new4")
         db.rollback()
     db.close()
 
@@ -856,7 +867,7 @@ def CreatePackageSheetForOrder(log,whichDB,newOrderID):
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
-        print("error new")
+        print("error new5")
         db.rollback()
     db.close()
 
@@ -1714,9 +1725,9 @@ def InsertNewOrder(log,whichDB,dic,operatorID):
         result=-1
     length = len(data)
     if length%(1024*1024)>0:
-        times = length/(1024*1024)+1
+        times = int(length/(1024*1024))+1
     else:
-        times = length/(1024*1024)
+        times = int(length/(1024*1024))
     if times>2:
         times=2
     for i in range(times):
@@ -1753,8 +1764,9 @@ def GetPDF(log,whichDB):
     with open('TJDZ_1.pdf', 'wb') as file:
         image = base64.b64decode(record[0])  # 解码
         file.write(image)
+        file.close()
 
-def UpdateTechCheckStateByID(log,whichDB,id):
+def UpdateTechCheckStateByID(log,whichDB,id,state):
     id = int(id)
     result = 1
     try:
@@ -1766,7 +1778,7 @@ def UpdateTechCheckStateByID(log,whichDB,id):
             log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
-    sql = "UPDATE `订单信息` SET `技术审核状态`= 'I' where `Index`= %s " % (id)
+    sql = "UPDATE `订单信息` SET `技术审核状态`= '%s' where `Index`= %s " % (state,id)
     try:
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
@@ -1788,7 +1800,7 @@ def UpdateDrafCheckInfoByID(log,whichDB,id,dicList):
             log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
         return []
     cursor = db.cursor()
-    sql = "DROP TABLE IF Exists `%s`"%id
+    sql = "DROP TABLE IF EXISTS `%s`"%id
     cursor.execute(sql)
     sql = """CREATE TABLE `%s` (
             `Index` INT(11) NOT NULL AUTO_INCREMENT,
@@ -1815,7 +1827,7 @@ def UpdateDrafCheckInfoByID(log,whichDB,id,dicList):
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
-        print("error new")
+        print("error new1")
         db.rollback()
     for dic in dicList:
         ls = [(k,dic[k]) for k in dic if dic[k] is not None]
@@ -1825,7 +1837,7 @@ def UpdateDrafCheckInfoByID(log,whichDB,id,dicList):
             cursor.execute(sql)
             db.commit()  # 必须有，没有的话插入语句不会执行
         except:
-            print("error new")
+            print("error new2")
             db.rollback()
     cursor.close
 
@@ -1843,7 +1855,11 @@ def GetDraftWallInfoByID(log,whichDB,id):
     sql = "select table_name from information_schema.tables where table_schema='%s'"%orderCheckDBName[whichDB]
     cursor.execute(sql)
     temp = cursor.fetchall()
-    if str(id) not in temp[0]:
+    result=[]
+    for i in temp:
+        result.append(i[0])
+    print("result=",result)
+    if str(id) not in result:
         sql = """CREATE TABLE `%s` (
                 `Index` INT(11) NOT NULL AUTO_INCREMENT,
                 `类别` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
@@ -1869,7 +1885,7 @@ def GetDraftWallInfoByID(log,whichDB,id):
             cursor.execute(sql)
             db.commit()  # 必须有，没有的话插入语句不会执行
         except:
-            print("error new")
+            print("error new3")
             db.rollback()
     sql="select * from `%s` where `类别`='%s'"%(id,"WALL")
     cursor.execute(sql)
@@ -1911,6 +1927,12 @@ def GetTechDrawingDataByID(log,whichDB,id):
     # sql = "INSERT INTO `订单信息` (`订单名称`,`客户原始技术图纸名`,`客户原始技术图纸`) VALUES ('%s', '%s', %s)"%(propertyDic["1.订单名称"], json.dumps(propertyDic["1.图纸文件"],ensure_ascii=False), MySQLdb.Binary(img))
     # sql = "INSERT INTO `订单信息` (`订单名称`,`客户原始技术图纸名`,`图`) VALUES ('%s', '%s', '%s')"%(propertyDic["1.订单名称"], json.dumps(propertyDic["1.图纸文件"],ensure_ascii=False), data)
     # sql = """INSERT INTO `订单信息` (`图`) VALUES (%s)""" %(img)
+
+    # sql = "select `图0`  from `订单信息` where `Index`=%s" % (id)
+    # cursor.execute(sql)
+    # record=cursor.fetchone()
+    # image = base64.b64decode(record[0])  # 解码
+
     temp =""
     for i in range(3):
         sql = "select `图%s`  from `订单信息` where `Index`=%s" % (i,id)
