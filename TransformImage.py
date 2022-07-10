@@ -40,6 +40,24 @@ def ReadInfoImage(kinfe_name):
     record=cursor.fetchone()
     return record
 
+def InsertInfoIntoDB(filename):
+    data = TransformBase64(filename)
+    if data != 'erro':
+        try:
+            db = MySQLdb.connect(host='192.168.1.108', user="slyb", passwd="Freescalejm60", db="test", charset='utf8')
+        except:
+            print("db_error!")
+        cursor = db.cursor()
+        sql = "INSERT INTO `测试表` (`图纸1`) VALUES ('%s')" %(data)
+        try:
+            cursor.execute(sql)
+            db.commit()  # 必须有，没有的话插入语句不会执行
+        except:
+            print("error Insert")
+            db.rollback()
+        db.close()
+
+
 def ShowImage(kinfe_name):
     """
     base64 -> image
@@ -51,5 +69,6 @@ def ShowImage(kinfe_name):
         file.write(image)
 
 if __name__ == '__main__':
-    info=ShowImage("TJDZ_1")
+    InsertInfoIntoDB("QMS-for-XA-2019-报价模板.pdf")
+    # info=ShowImage("TJDZ_1")
     # info=UpdateInfoImage("TJDZ_1")

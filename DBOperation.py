@@ -52,9 +52,9 @@ def GetStaffInfoWithPassword(log, whichDB, psw):
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
     except:
-        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        wx.MessageBox("1无法连接%s!" % dbName[whichDB], "错误信息")
         if log:
-            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+            log.WriteText("1无法连接%s!" % dbName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
     sql = """SELECT `处`,`科`,`工位名`,`姓名`,`员工编号`,`工作状态` from `info_staff` WHERE `密码`='%s'"""%(psw)
@@ -69,9 +69,9 @@ def GetStaffInfoWithID(log, whichDB, ID):
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
     except:
-        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        wx.MessageBox("2无法连接%s!" % dbName[whichDB], "错误信息")
         if log:
-            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+            log.WriteText("2无法连接%s!" % dbName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
     sql = """SELECT `处`,`科`,`工位名`,`姓名`,`员工编号`,`工作状态` from `info_staff` WHERE `员工编号`='%s'"""%(ID)
@@ -85,9 +85,9 @@ def GetAllOrderList(log, whichDB):
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
     except:
-        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        wx.MessageBox("3无法连接%s!" % dbName[whichDB], "错误信息")
         if log:
-            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+            log.WriteText("3无法连接%s!" % dbName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
     sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态`,`子订单编号`,`子订单状态`,`技术审核状态`,`财务审核状态`,`采购审核状态`,`技术审核员ID`,`技术审核时间`,`技术审核意见` from `订单信息` """
@@ -101,9 +101,9 @@ def GetAllOrderAllInfo(log, whichDB,type):
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
     except:
-        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        wx.MessageBox("4无法连接%s!" % dbName[whichDB], "错误信息")
         if log:
-            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+            log.WriteText("4无法连接%s!" % dbName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
     if type == "草稿":
@@ -124,9 +124,9 @@ def GetOrderByOrderID(log, whichDB, orderID):
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
     except:
-        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        wx.MessageBox("5无法连接%s!" % dbName[whichDB], "错误信息")
         if log:
-            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+            log.WriteText("5无法连接%s!" % dbName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
     sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态`,`子订单编号`,`子订单状态`  from `订单信息` where `订单编号` = %s"""%int(orderID)
@@ -228,34 +228,43 @@ def UpdateDraftOrderInfoByID(log, whichDB,dic,id):
         print("errorName")
         db.rollback()
         result=-1
-    length = len(data)
-    if length%(1024*1024)>0:
-        times = int(length/(1024*1024))+1
-    else:
-        times = int(length/(1024*1024))
-    if times>2:
-        times=2
-    for i in range(times):
-        temp=data[i*(1024*1024):(i+1)*1024*1024]
-        sql = "UPDATE `订单信息` SET `图%s`= '%s' where `Index`= %s "%(i, temp ,id)
-        try:
-            cursor.execute(sql)
-            db.commit()  # 必须有，没有的话插入语句不会执行
-        except:
-            print("error图")
-            db.rollback()
-            result=-1
-    if times<2:#这部分代码是清空这次没用的存储字段
-        for i in range(times,2):
-            temp = ""
-            sql = "UPDATE `订单信息` SET `图%s`= '%s' where `Index`= %s " % (i, temp, id)
-            try:
-                cursor.execute(sql)
-                db.commit()  # 必须有，没有的话插入语句不会执行
-            except:
-                print("error图")
-                db.rollback()
-                result = -1
+    sql = "UPDATE `订单技术图纸信息` SET `技术图纸`= '%s' where `订单编号`= %s "%(data ,id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("error图2")
+        db.rollback()
+        result=-1
+
+    # length = len(data)
+    # if length%(1024*1024)>0:
+    #     times = int(length/(1024*1024))+1
+    # else:
+    #     times = int(length/(1024*1024))
+    # if times>2:
+    #     times=2
+    # for i in range(times):
+    #     temp=data[i*(1024*1024):(i+1)*1024*1024]
+    #     sql = "UPDATE `订单信息` SET `图%s`= '%s' where `Index`= %s "%(i, temp ,id)
+    #     try:
+    #         cursor.execute(sql)
+    #         db.commit()  # 必须有，没有的话插入语句不会执行
+    #     except:
+    #         print("error图")
+    #         db.rollback()
+    #         result=-1
+    # if times<2:#这部分代码是清空这次没用的存储字段
+    #     for i in range(times,2):
+    #         temp = ""
+    #         sql = "UPDATE `订单信息` SET `图%s`= '%s' where `Index`= %s " % (i, temp, id)
+    #         try:
+    #             cursor.execute(sql)
+    #             db.commit()  # 必须有，没有的话插入语句不会执行
+    #         except:
+    #             print("error图")
+    #             db.rollback()
+    #             result = -1
     db.close()
     return result
 
@@ -917,7 +926,7 @@ def InsertPackageBoxInfo(log,whichDB,orderID,suborderID,boxInfo):
             cursor.execute(sql)
             db.commit()  # 必须有，没有的话插入语句不会执行
         except:
-            print("error Insert")
+            print("error Insert1")
             db.rollback()
 
         sql = """SELECT `Index` from `%s` where `货盘编号`='%s'""" % (str(orderID), '待定中')
@@ -1655,6 +1664,7 @@ def InsertPanelDetailIntoPackageDB(log, whichDB, orderTabelName, orderDataList):
 
 def InsertNewOrder(log,whichDB,dic,operatorID):
     result = 1
+    print("whichDB=",whichDB)
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
@@ -1670,17 +1680,25 @@ def InsertNewOrder(log,whichDB,dic,operatorID):
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
-        print("error Insert")
+        print("error Insert2")
         db.rollback()
     sql = """SELECT `Index` from `订单信息` where `备注`= '%s' and `订单编号`= 0"""%(operatorID)
     cursor.execute(sql)
     id = cursor.fetchone()[0]
+    print("id=",id)
     sql = "UPDATE `订单信息` SET `订单编号`= %s, `备注`='' where `Index`=%s " %(int(id),id)
     try:
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
         print("error1")
+        db.rollback()
+    sql = "INSERT INTO `订单技术图纸信息` (`订单编号`) VALUES (%s)"%(int(id))
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("error Insert3")
         db.rollback()
     sectionNameDic={
                        "订单名称":"1.订单名称 *",
@@ -1723,23 +1741,32 @@ def InsertNewOrder(log,whichDB,dic,operatorID):
         print("errorName")
         db.rollback()
         result=-1
-    length = len(data)
-    if length%(1024*1024)>0:
-        times = int(length/(1024*1024))+1
-    else:
-        times = int(length/(1024*1024))
-    if times>2:
-        times=2
-    for i in range(times):
-        temp=data[i*(1024*1024):(i+1)*1024*1024]
-        sql = "UPDATE `订单信息` SET `图%s`= '%s' where `Index`= %s "%(i, temp ,id)
-        try:
-            cursor.execute(sql)
-            db.commit()  # 必须有，没有的话插入语句不会执行
-        except:
-            print("error图")
-            db.rollback()
-            result=-1
+    sql = "UPDATE `订单技术图纸信息` SET `技术图纸`= '%s' where `订单编号`= %s "%( data ,int(id))
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("error图1")
+        db.rollback()
+        result=-1
+
+    # length = len(data)
+    # if length%(1024*1024)>0:
+    #     times = int(length/(1024*1024))+1
+    # else:
+    #     times = int(length/(1024*1024))
+    # if times>2:
+    #     times=2
+    # for i in range(times):
+    #     temp=data[i*(1024*1024):(i+1)*1024*1024]
+    #     sql = "UPDATE `订单信息` SET `图%s`= '%s' where `Index`= %s "%(i, temp ,id)
+    #     try:
+    #         cursor.execute(sql)
+    #         db.commit()  # 必须有，没有的话插入语句不会执行
+    #     except:
+    #         print("error图")
+    #         db.rollback()
+    #         result=-1
     db.close()
     return result
 
@@ -1934,14 +1961,10 @@ def GetTechDrawingDataByID(log,whichDB,id):
     # image = base64.b64decode(record[0])  # 解码
 
     temp =""
-    for i in range(3):
-        sql = "select `图%s`  from `订单信息` where `Index`=%s" % (i,id)
-        cursor.execute(sql)
-        record=cursor.fetchone()
-        if record[0]=="":
-            break
-        else:
-            temp+=record[0]
+    sql = "select `技术图纸`  from `订单技术图纸信息` where `订单编号`=%s" % (id)
+    cursor.execute(sql)
+    record=cursor.fetchone()
+    temp=record[0]
     image = base64.b64decode(temp)  # 解码
     db.close()
     return image

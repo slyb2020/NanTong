@@ -284,6 +284,12 @@ class MainPanel(wx.Panel):
                   id2=ID_WINDOW_BOTTOM)  # BOTTOM和LEFT顺序不能换，要想更改哪个先分，只需更改上面窗口定义的顺序
         self._pnl.Bind(fpb.EVT_CAPTIONBAR, self.OnPressCaption)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED,self.OnNoteBookPageChanged)
+        self.mainTimer = wx.Timer(self)
+        self.mainTimer.Start(1000)
+        self.Bind(wx.EVT_TIMER, self.OnMainTimer)
+    def OnMainTimer(self,event):
+        if self.work_zone_Panel.orderManagementPanel.IsShown():
+            self.work_zone_Panel.orderManagementPanel.ReCreate()
 
     def CreateBottomWindow(self):
         self.bottomWindow = wx.adv.SashLayoutWindow(self, ID_WINDOW_BOTTOM, style=wx.NO_BORDER | wx.adv.SW_3D)
@@ -926,7 +932,8 @@ class MainPanel(wx.Panel):
             page = obj.GetSelection()
             pageName = self.work_zone_Panel.notebook.GetPageText(page)
             if pageName=="订单管理":
-                self.work_zone_Panel.orderManagementPanel.ReCreate()
+                pass
+                # self.work_zone_Panel.orderManagementPanel.ReCreate()
             elif pageName=="图纸管理":
                 self.work_zone_Panel.bluePrintManagementPanel.ReCreate()
             elif pageName=="生产管理":
@@ -988,7 +995,7 @@ class WorkZonePanel(wx.Panel):
         if self.master.operatorCharacter in ["技术员","管理员"]:
             self.manufactureManagementPanel = ManufactureManagementPanel(self.notebook, self.master, self.log)
             self.notebook.AddPage(self.manufactureManagementPanel, "生产管理")
-        self.orderManagementPanel.ReCreate()
+        # self.orderManagementPanel.ReCreate()
         self.notebook.SetSelection(1)
         # if self.master.operatorCharacter == '下单员':
         #     self.notebook.SetSelection(1)

@@ -4,6 +4,7 @@ from operator import itemgetter
 import numpy as np
 import wx
 import wx.grid as gridlib
+import wx.lib.agw.pybusyinfo as PBI
 
 from BluePrintManagementPanel import BluePrintShowPanel
 from DBOperation import GetAllOrderAllInfo, GetAllOrderList, GetOrderDetailRecord, InsertNewOrder, GetStaffInfoWithID, \
@@ -315,138 +316,157 @@ class OrderManagementPanel(wx.Panel):
         self.log = log
         self.type = type
         self.character = character
+        self.dataList = []
+        self.recreateEnable = True
+        self.checkDataTimer = wx.Timer(self)
+        self.checkDataTimer.Start(10000)
+        self.Bind(wx.EVT_TIMER, self.OnCheckDataTimer)
+
+    def OnCheckDataTimer(self,event):
+        _, dataList = GetAllOrderAllInfo(self.log, WHICHDB, self.type)
+        if self.dataList != dataList:
+            self.dataList = dataList
+            self.recreateEnable = True
 
     def ReCreate(self):
-        self.Freeze()
-        self.DestroyChildren()
-        self.busy = False
-        self.showRange=[]
-        # if self.parent.master.operatorCharacter=="下单员":
-        if self.type == "草稿":
-            self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术审核","采购审核","财务审核","经理审核"]
-            self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      60,       60,       60,       60]
-        elif self.type =="在产":
-            self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
-            self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
-        elif self.type =="完工":
-            self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
-            self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
-        elif self.type =="废弃":
-            self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术审核","采购审核","财务审核","经理审核"]
-            self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      60,       60,       60,       60]
-        self.orderDetailData = []
-        _, dataList = GetAllOrderAllInfo(self.log, WHICHDB,self.type)
-        orderList=[]
-        for record in dataList:#这个循环是吧要在grid中显示的数据排序，对其，内容规整好
-            record = list(record)
-            startDay = datetime.date.today()
-            temp = record[4].split('-')
-            endDay = datetime.date(year=int(temp[0]),month=int(temp[1]),day=int(temp[2]))
-            # endDay = wxdate2pydate(json.loads(record[4]))
-            # endDay = datetime.date.today()+datetime.timedelta(days=5)
-            record.insert(0,(endDay-startDay).days)
-            record[1]="%05d"%int(record[1])
-            if record[3]=="":
-                record[3]="暂无报价"
-            if record[4]=='0':
-                record[4]=""
-            _, staffInfo = GetStaffInfoWithID(self.log, WHICHDB, record[7])
-            record[7] = staffInfo[3]
-            for i in range(4):
-                if self.type in ["草稿","废弃"]:
-                    if record[9+i]=='N':
-                        record[9+i]="未审核"
-                    elif record[9+i]=='Y':
-                        record[9+i]="审核通过"
-                    else:
-                        record[9+i]="正在审核"
+        if self.recreateEnable:
+            print("refreshData")
+            self.recreateEnable = False
+            self.Freeze()
+            self.DestroyChildren()
+            self.busy = False
+            self.showRange=[]
+            # if self.parent.master.operatorCharacter=="下单员":
+            if self.type == "草稿":
+                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术审核","采购审核","财务审核","经理审核"]
+                self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      60,       60,       60,       60]
+            elif self.type =="在产":
+                self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
+                self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
+            elif self.type =="完工":
+                self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
+                self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
+            elif self.type =="废弃":
+                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术审核","采购审核","财务审核","经理审核"]
+                self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      60,       60,       60,       60]
+            self.orderDetailData = []
+            if self.dataList==[]:
+                _, self.dataList = GetAllOrderAllInfo(self.log, WHICHDB,self.type)
+            else:
+                self.log.WriteText("订单数据发生变化，系统完成显示更新！\r\n")
+            orderList=[]
+            for record in self.dataList:#这个循环是把要在grid中显示的数据排序，对齐，内容规整好
+                record = list(record)
+                startDay = datetime.date.today()
+                temp = record[4].split('-')
+                print("temp=",temp)
+                print("record[4]=",record[4])
+                endDay = datetime.date(year=int(temp[0]),month=int(temp[1]),day=int(temp[2]))
+                # endDay = wxdate2pydate(json.loads(record[4]))
+                # endDay = datetime.date.today()+datetime.timedelta(days=5)
+                record.insert(0,(endDay-startDay).days)
+                record[1]="%05d"%int(record[1])
+                if record[3]=="":
+                    record[3]="暂无报价"
+                if record[4]=='0':
+                    record[4]=""
+                _, staffInfo = GetStaffInfoWithID(self.log, WHICHDB, record[7])
+                record[7] = staffInfo[3]
+                for i in range(4):
+                    if self.type in ["草稿","废弃"]:
+                        if record[9+i]=='N':
+                            record[9+i]="未审核"
+                        elif record[9+i]=='Y':
+                            record[9+i]="审核通过"
+                        else:
+                            record[9+i]="正在审核"
 
-            orderList.append(record)
-        orderList.sort(key=itemgetter(0), reverse=False)
+                orderList.append(record)
+            orderList.sort(key=itemgetter(0), reverse=False)
 
-        self.dataArray = np.array(orderList)
-        self.data = []
-        self.orderIDSearch=''
-        self.orderStateSearch=''
-        self.productNameSearch=''
-        self.operatorSearch=''
-        hbox = wx.BoxSizer()
-        size=(1000,-1)
-        if self.type in ["草稿","废弃"]:
-            size=(1100,-1)
-        elif self.type in ["在产","完工"]:
-            size=(710,-1)
-        self.leftPanel = wx.Panel(self, size=size)
-        hbox.Add(self.leftPanel, 0, wx.EXPAND)
-        self.rightPanel = wx.Panel(self, style=wx.BORDER_THEME)
-        hbox.Add(self.rightPanel, 1, wx.EXPAND)
-        self.SetSizer(hbox)
-        vvbox = wx.BoxSizer(wx.VERTICAL)
-        self.orderGrid = OrderGrid(self.leftPanel, self, self.log)
-        vvbox.Add(self.orderGrid, 1, wx.EXPAND)
-        hhbox = wx.BoxSizer()
-        searchPanel = wx.Panel(self.leftPanel, size=(-1, 30), style=wx.BORDER_DOUBLE)
-        vvbox.Add(searchPanel, 0, wx.EXPAND)
-        hhbox = wx.BoxSizer()
-        self.searchResetBTN = wx.Button(searchPanel, label='Rest', size=(48, -1))
-        self.searchResetBTN.Bind(wx.EVT_BUTTON, self.OnResetSearchItem)
-        hhbox.Add(self.searchResetBTN, 0, wx.EXPAND)
-        self.orderIDSearchCtrl = wx.TextCtrl(searchPanel, size=(self.colWidthList[0], -1), style=wx.TE_PROCESS_ENTER )
-        self.orderIDSearchCtrl.Bind(wx.EVT_TEXT_ENTER, self.OnOrderIDSearch)
-        hhbox.Add(self.orderIDSearchCtrl, 0, wx.EXPAND)
-        self.customerNameSearchCtrl = wx.TextCtrl(searchPanel, size=(self.colWidthList[1], -1))
-        # self.customerNameSearchCtrl.Bind(wx.EVT_COMBOBOX, self.OnOrderStateSearch)
-        hhbox.Add(self.customerNameSearchCtrl, 0, wx.EXPAND)
-        self.productNameSearchCtrl = wx.ComboBox(searchPanel, choices=['A1', 'B0', 'B1', 'B5', 'B7'],
-                                                 size=(self.colWidthList[2], -1))
-        self.productNameSearchCtrl.Bind(wx.EVT_COMBOBOX, self.OnProductNameSearch)
-        hhbox.Add(self.productNameSearchCtrl, 0, wx.EXPAND)
-        self.productAmountSearchCtrl = wx.TextCtrl(searchPanel, size=(self.colWidthList[3], -1))
-        hhbox.Add(self.productAmountSearchCtrl, 0, wx.EXPAND)
-        self.deliverDateSearchCtrl = wx.TextCtrl(searchPanel, size=(self.colWidthList[4], -1))
-        hhbox.Add(self.deliverDateSearchCtrl, 0, wx.EXPAND)
-        self.orderDateSearchCtrl = wx.TextCtrl(searchPanel, size=(self.colWidthList[5], -1))
-        hhbox.Add(self.orderDateSearchCtrl, 0, wx.EXPAND)
-        self.operatorSearchCtrl = wx.ComboBox(searchPanel, choices=["1803089"], size=(self.colWidthList[6], -1))
-        self.operatorSearchCtrl.Bind(wx.EVT_COMBOBOX, self.OnOperatorSearch)
-        hhbox.Add(self.operatorSearchCtrl, 0, wx.EXPAND)
-        self.orderStateSearchCtrl = wx.ComboBox(searchPanel, choices=["接单","排产","下料","加工","打包","发货"], size=(self.colWidthList[7], -1))
-        self.orderStateSearchCtrl.Bind(wx.EVT_COMBOBOX, self.OnOrderStateSearch)
-        hhbox.Add(self.orderStateSearchCtrl, 0, wx.EXPAND)
+            self.dataArray = np.array(orderList)
+            self.data = []
+            self.orderIDSearch=''
+            self.orderStateSearch=''
+            self.productNameSearch=''
+            self.operatorSearch=''
+            hbox = wx.BoxSizer()
+            size=(1000,-1)
+            if self.type in ["草稿","废弃"]:
+                size=(1100,-1)
+            elif self.type in ["在产","完工"]:
+                size=(710,-1)
+            self.leftPanel = wx.Panel(self, size=size)
+            hbox.Add(self.leftPanel, 0, wx.EXPAND)
+            self.rightPanel = wx.Panel(self, style=wx.BORDER_THEME)
+            hbox.Add(self.rightPanel, 1, wx.EXPAND)
+            self.SetSizer(hbox)
+            vvbox = wx.BoxSizer(wx.VERTICAL)
+            self.orderGrid = OrderGrid(self.leftPanel, self, self.log)
+            vvbox.Add(self.orderGrid, 1, wx.EXPAND)
+            hhbox = wx.BoxSizer()
+            searchPanel = wx.Panel(self.leftPanel, size=(-1, 30), style=wx.BORDER_DOUBLE)
+            vvbox.Add(searchPanel, 0, wx.EXPAND)
+            hhbox = wx.BoxSizer()
+            self.searchResetBTN = wx.Button(searchPanel, label='Rest', size=(48, -1))
+            self.searchResetBTN.Bind(wx.EVT_BUTTON, self.OnResetSearchItem)
+            hhbox.Add(self.searchResetBTN, 0, wx.EXPAND)
+            self.orderIDSearchCtrl = wx.TextCtrl(searchPanel, size=(self.colWidthList[0], -1), style=wx.TE_PROCESS_ENTER )
+            self.orderIDSearchCtrl.Bind(wx.EVT_TEXT_ENTER, self.OnOrderIDSearch)
+            hhbox.Add(self.orderIDSearchCtrl, 0, wx.EXPAND)
+            self.customerNameSearchCtrl = wx.TextCtrl(searchPanel, size=(self.colWidthList[1], -1))
+            # self.customerNameSearchCtrl.Bind(wx.EVT_COMBOBOX, self.OnOrderStateSearch)
+            hhbox.Add(self.customerNameSearchCtrl, 0, wx.EXPAND)
+            self.productNameSearchCtrl = wx.ComboBox(searchPanel, choices=['A1', 'B0', 'B1', 'B5', 'B7'],
+                                                     size=(self.colWidthList[2], -1))
+            self.productNameSearchCtrl.Bind(wx.EVT_COMBOBOX, self.OnProductNameSearch)
+            hhbox.Add(self.productNameSearchCtrl, 0, wx.EXPAND)
+            self.productAmountSearchCtrl = wx.TextCtrl(searchPanel, size=(self.colWidthList[3], -1))
+            hhbox.Add(self.productAmountSearchCtrl, 0, wx.EXPAND)
+            self.deliverDateSearchCtrl = wx.TextCtrl(searchPanel, size=(self.colWidthList[4], -1))
+            hhbox.Add(self.deliverDateSearchCtrl, 0, wx.EXPAND)
+            self.orderDateSearchCtrl = wx.TextCtrl(searchPanel, size=(self.colWidthList[5], -1))
+            hhbox.Add(self.orderDateSearchCtrl, 0, wx.EXPAND)
+            self.operatorSearchCtrl = wx.ComboBox(searchPanel, choices=["1803089"], size=(self.colWidthList[6], -1))
+            self.operatorSearchCtrl.Bind(wx.EVT_COMBOBOX, self.OnOperatorSearch)
+            hhbox.Add(self.operatorSearchCtrl, 0, wx.EXPAND)
+            self.orderStateSearchCtrl = wx.ComboBox(searchPanel, choices=["接单","排产","下料","加工","打包","发货"], size=(self.colWidthList[7], -1))
+            self.orderStateSearchCtrl.Bind(wx.EVT_COMBOBOX, self.OnOrderStateSearch)
+            hhbox.Add(self.orderStateSearchCtrl, 0, wx.EXPAND)
 
-        # for i,width in enumerate(self.colWidthList):
-        #     if i==6:
-        #         width+=55
-        #     searchTXT = wx.TextCtrl(searchPanel, size=(width,-1))
-        #     hhbox.Add(searchTXT, 0, wx.EXPAND)
-        searchPanel.SetSizer(hhbox)
-        # self.filter = wx.SearchCtrl(self.leftPanel, size=(200,-1), style=wx.TE_PROCESS_ENTER)
-        # self.filter.ShowCancelButton(True)
-        # hhbox.Add((1,-1))
-        # hhbox.Add(self.filter,0)
-        # vvbox.Add(hhbox,0,wx.EXPAND)
-        self.leftPanel.SetSizer(vvbox)
-        # self.filter.Bind(wx.EVT_TEXT, self.RecreateTree)
-        # self.filter.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN,
-        #                  lambda e: self.filter.SetValue(''))
-        # self.filter.Bind(wx.EVT_TEXT_ENTER, self.OnSearch)
-        # self.ReCreateRightPanel()
-        self.orderGrid.Bind(gridlib.EVT_GRID_CELL_LEFT_CLICK, self.OnCellLeftClick)
-        self.Layout()
-        self.Thaw()
+            # for i,width in enumerate(self.colWidthList):
+            #     if i==6:
+            #         width+=55
+            #     searchTXT = wx.TextCtrl(searchPanel, size=(width,-1))
+            #     hhbox.Add(searchTXT, 0, wx.EXPAND)
+            searchPanel.SetSizer(hhbox)
+            # self.filter = wx.SearchCtrl(self.leftPanel, size=(200,-1), style=wx.TE_PROCESS_ENTER)
+            # self.filter.ShowCancelButton(True)
+            # hhbox.Add((1,-1))
+            # hhbox.Add(self.filter,0)
+            # vvbox.Add(hhbox,0,wx.EXPAND)
+            self.leftPanel.SetSizer(vvbox)
+            # self.filter.Bind(wx.EVT_TEXT, self.RecreateTree)
+            # self.filter.Bind(wx.EVT_SEARCHCTRL_CANCEL_BTN,
+            #                  lambda e: self.filter.SetValue(''))
+            # self.filter.Bind(wx.EVT_TEXT_ENTER, self.OnSearch)
+            # self.ReCreateRightPanel()
+            self.orderGrid.Bind(gridlib.EVT_GRID_CELL_LEFT_CLICK, self.OnCellLeftClick)
+            self.Layout()
+            self.Thaw()
 
-    def ReCreateOrderDetailTree(self):
-        self.orderDetailTreePanel.DestroyChildren()
-        _, self.orderDetailData = GetOrderDetailRecord(self.log, 1, self.data[0])
-        if len(self.orderDetailData) == 0:
-            self.treeStructure = []
-        else:
-            self.treeStructure = self.TreeDataTransform()
-        self.orderDetailTree = OrderDetailTree(self.orderDetailTreePanel,self,self.log,self.data[0],self.treeStructure)
-        vbox = wx.BoxSizer(wx.VERTICAL)
-        vbox.Add(self.orderDetailTree,1,wx.EXPAND)
-        self.orderDetailTreePanel.SetSizer(vbox)
-        self.orderDetailTreePanel.Layout()
+        def ReCreateOrderDetailTree(self):
+            self.orderDetailTreePanel.DestroyChildren()
+            _, self.orderDetailData = GetOrderDetailRecord(self.log, 1, self.data[0])
+            if len(self.orderDetailData) == 0:
+                self.treeStructure = []
+            else:
+                self.treeStructure = self.TreeDataTransform()
+            self.orderDetailTree = OrderDetailTree(self.orderDetailTreePanel,self,self.log,self.data[0],self.treeStructure)
+            vbox = wx.BoxSizer(wx.VERTICAL)
+            vbox.Add(self.orderDetailTree,1,wx.EXPAND)
+            self.orderDetailTreePanel.SetSizer(vbox)
+            self.orderDetailTreePanel.Layout()
 
     def ReCreateOrderEditPanel(self):
         self.orderEditPanel.Freeze()
@@ -1617,7 +1637,7 @@ class CreateNewOrderDialog(wx.Dialog):
             wx.MessageBox("投标日期与下单日期太近，请修改后再试！")
             return
         # elif
-        result = InsertNewOrder(self.log,1,self.propertyDic,operatorID)
+        result = InsertNewOrder(self.log,WHICHDB,self.propertyDic,operatorID)
         if result<0:
             wx.MessageBox("存储出错，请检查后重试！","系统提示")
         else:
@@ -1629,11 +1649,22 @@ class CreateNewOrderDialog(wx.Dialog):
 class TechDrawingButtonEditor(wxpg.PGTextCtrlEditor):
     def __init__(self):
         wxpg.PGTextCtrlEditor.__init__(self)
+        self.fileData = []
+
+    def LoadFileData(self):
+        if self.fileData == []:
+            message = "正在从数据库中读取数据，请稍候..."
+            busy = PBI.PyBusyInfo(message, parent=None, title="系统忙。。。",
+                                  icon=images.Smiles.GetBitmap())
+            wx.Yield()
+            self.fileData = GetTechDrawingDataByID(None, WHICHDB, self.id)
+            del busy
+
     def CreateControls(self, propGrid, property, pos, sz):
         self.fileType = property.GetValue().split('.')[-1]
         self.fileName = property.GetValue().split('.')[-2]+'.'+self.fileType
         self.id = property.GetValue().split('.')[0]
-        self.fileData = GetTechDrawingDataByID(None,WHICHDB,self.id)
+        # self.fileData = GetTechDrawingDataByID(None,WHICHDB,self.id)
         # Create and populate buttons-subwindow
         buttons = wxpg.PGMultiButton(propGrid, sz)
         # Add two regular buttons
@@ -1666,13 +1697,13 @@ class TechDrawingButtonEditor(wxpg.PGTextCtrlEditor):
         if event.GetEventType() == wx.wxEVT_COMMAND_BUTTON_CLICKED:
             buttons = self.buttons
             evtId = event.GetId()
-
             if evtId == buttons.GetButtonId(0):
                 # Do something when the first button is pressed
                 wx.LogDebug("First button pressed")
                 return False  # Return false since value did not change
             if evtId == buttons.GetButtonId(1):
                 # Do something when the second button is pressed
+                self.LoadFileData()
                 with open("temp.pdf", 'wb') as fp:
                     fp.write(self.fileData)
                     fp.close()
@@ -1685,6 +1716,7 @@ class TechDrawingButtonEditor(wxpg.PGTextCtrlEditor):
                 return False  # Return false since value did not change
             if evtId == buttons.GetButtonId(2):
                 # Do something when the third button is pressed
+                self.LoadFileData()
                 dlg = wx.DirDialog(None, "Choose a directory:",
                                    style=wx.DD_DEFAULT_STYLE
                                    # | wx.DD_DIR_MUST_EXIST

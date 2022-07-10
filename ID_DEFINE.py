@@ -11,7 +11,7 @@
 import os
 import wx
 
-#需要设置的参数：
+# 需要设置的参数：
 # 1.工单存放文件夹
 dirName = os.path.dirname(os.path.abspath(__file__))
 bitmapDir = os.path.join(dirName, 'bitmaps')
@@ -21,33 +21,38 @@ bluePrintDir = os.path.join(dirName, 'Stena 生产图纸/')
 
 WHICHDB = 1
 
-dbHostName = ["127.0.0.1",'127.0.0.1']
-dbUserName = ['root','root']
-dbPassword = ['','']
-dbName = ['智能生产管理系统','智能生产管理系统_调试']
-orderDBName = ['订单数据库','订单数据库_调试']
-packageDBName = ['货盘数据库','货盘数据库_调试']
-orderCheckDBName = ['订单审核数据库','订单审核数据库_调试']
-orderDetailLabelList=['Index','订单号','子订单','甲板','区域','房间','图纸','面板代码','X面颜色','Y面颜色','高度','宽度','厚度','数量','Z面颜色','V面颜色','胶水单号']
-orderDetailColSizeList = [30,40,50,35,35,50,70,80,60,60,40,40,40,40,50,50,70,70]
-orderWorkingStateList = ['接单','排产','下料','加工','打包','发货']
+dbHostName = ["127.0.0.1", '127.0.0.1', '192.168.1.108']
+dbUserName = ['root', 'root', 'slyb']
+dbPassword = ['', '', 'Freescalejm60']
+dbName = ['智能生产管理系统', '智能生产管理系统_调试', '智能生产管理系统_调试']
+orderDBName = ['订单数据库', '订单数据库_调试', '订单数据库_调试']
+packageDBName = ['货盘数据库', '货盘数据库_调试', '货盘数据库_调试']
+orderCheckDBName = ['订单审核数据库', '订单审核数据库_调试', '订单审核数据库_调试']
+orderDetailLabelList = ['Index', '订单号', '子订单', '甲板', '区域', '房间', '图纸', '面板代码', 'X面颜色', 'Y面颜色', '高度', '宽度', '厚度', '数量',
+                        'Z面颜色', 'V面颜色', '胶水单号']
+orderDetailColSizeList = [30, 40, 50, 35, 35, 50, 70, 80, 60, 60, 40, 40, 40, 40, 50, 50, 70, 70]
+orderWorkingStateList = ['接单', '排产', '下料', '加工', '打包', '发货']
 
-WallCheckEnableSectionList = ['产品名称', '产品型号', '产品表面材料', '产品长度', '产品宽度', '产品厚度', '单位', '数量','产品描述']
+WallCheckEnableSectionList = ['产品名称', '产品型号', '产品表面材料', '产品长度', '产品宽度', '产品厚度', '单位', '数量', '产品描述']
 WallCheckEnableSectionDic = {
-                        "技术员":['产品名称', '产品型号', '产品表面材料', '产品长度', '产品宽度', '产品厚度', '单位', '数量','产品描述'],
-                        "采购员":['产品名称', '产品型号', '产品表面材料', '产品长度', '产品宽度', '产品厚度', '单位', '数量','单价','总价','产品描述'],
-                        }
+    "技术员": ['产品名称', '产品型号', '产品表面材料', '产品长度', '产品宽度', '产品厚度', '单位', '数量', '产品描述'],
+    "采购员": ['产品名称', '产品型号', '产品表面材料', '产品长度', '产品宽度', '产品厚度', '单位', '数量', '单价', '总价', '产品描述'],
+}
 BIDMODE = ['wxPython Rules', 'wxPython Rocks', 'wxPython Is The Best']
 BIDMETHOD = ['离岸价', '到岸价']
 
-CheckTitleDict={"WALL":['Procuct \r\nNo.', 'Product \r\nType', 'Product \r\nSurface', 'Product \r\nHeight/Length (mm)',
-        'Procuct \r\nNo.Wdith (mm)', 'Procuct \r\nNo.Thickness (mm)', 'Unit', 'Total \r\nQuantity','Product \r\nDescription']
-                        }
-OtherCheckTitleDict={"WALL":['Procuct \r\nNo.', 'Product \r\nType', 'Product \r\nSurface', 'Product \r\nHeight/Length (mm)',
-        'Procuct \r\nNo.Wdith (mm)', 'Procuct \r\nNo.Thickness (mm)', 'Unit', 'Total \r\nQuantity', 'Unit \r\nPrice', 'Total \r\nPrice','Product \r\nDescription']
-                        }
-CheckColWidthDict = {'WALL':[125,125,160,150,150,150,80,150,155]}
-OtherCheckColWidthDict = {'WALL':[125,125,160,150,150,150,80,150,80,80,155]}
+CheckTitleDict = {
+    "WALL": ['Procuct \r\nNo.', 'Product \r\nType', 'Product \r\nSurface', 'Product \r\nHeight/Length (mm)',
+             'Procuct \r\nNo.Wdith (mm)', 'Procuct \r\nNo.Thickness (mm)', 'Unit', 'Total \r\nQuantity',
+             'Product \r\nDescription']
+    }
+OtherCheckTitleDict = {
+    "WALL": ['Procuct \r\nNo.', 'Product \r\nType', 'Product \r\nSurface', 'Product \r\nHeight/Length (mm)',
+             'Procuct \r\nNo.Wdith (mm)', 'Procuct \r\nNo.Thickness (mm)', 'Unit', 'Total \r\nQuantity',
+             'Unit \r\nPrice', 'Total \r\nPrice', 'Product \r\nDescription']
+    }
+CheckColWidthDict = {'WALL': [125, 125, 160, 150, 150, 150, 80, 150, 155]}
+OtherCheckColWidthDict = {'WALL': [125, 125, 160, 150, 150, 150, 80, 150, 80, 80, 155]}
 WALL = 0
 CEILING = 1
 CONSTRUCTION = 2
