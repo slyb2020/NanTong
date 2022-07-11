@@ -165,6 +165,8 @@ class FlatMenuFrame(wx.Frame):
 
     def OnCheckOut(self, event):
         self.check_in_flag = False
+        self.mainPANEL.mainTimer.Destroy()
+        self.mainPANEL.work_zone_Panel.orderManagementPanel.checkDataTimer.Destroy()
         self.operatorName = ""
         self.statusbar.SetStatusText("当前状态：%s 未登录  " % self.operatorName, 2)
         self.UpdateMainUI()
@@ -202,6 +204,8 @@ class FlatMenuFrame(wx.Frame):
         self.Layout()
 
     def OnQuit(self, event):
+        self.mainPANEL.mainTimer.Destroy()
+        self.mainPANEL.work_zone_Panel.orderManagementPanel.checkDataTimer.Destroy()
         self.Destroy()
 
     def OnAbout(self, event):

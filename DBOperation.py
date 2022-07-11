@@ -1664,8 +1664,6 @@ def InsertPanelDetailIntoPackageDB(log, whichDB, orderTabelName, orderDataList):
 
 def InsertNewOrder(log,whichDB,dic,operatorID):
     result = 1
-    print("whichDB=",whichDB)
-    print("dic=",dic)
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
@@ -1686,7 +1684,6 @@ def InsertNewOrder(log,whichDB,dic,operatorID):
     sql = """SELECT `Index` from `订单信息` where `备注`= '%s' and `订单编号`= 0"""%(operatorID)
     cursor.execute(sql)
     id = cursor.fetchone()[0]
-    print("id=",id)
     sql = "UPDATE `订单信息` SET `订单编号`= %s, `备注`='' where `Index`=%s " %(int(id),id)
     try:
         cursor.execute(sql)
@@ -1860,7 +1857,6 @@ def UpdateDrafCheckInfoByID(log,whichDB,id,dicList):
     for dic in dicList:
         ls = [(k,dic[k]) for k in dic if dic[k] is not None]
         sql = 'insert `%s` (' %id + ','.join(i[0] for i in ls)+') values ('+','.join('%r' %i[1] for i in ls)+')'
-        print(sql)
         try:
             cursor.execute(sql)
             db.commit()  # 必须有，没有的话插入语句不会执行
@@ -1886,7 +1882,6 @@ def GetDraftWallInfoByID(log,whichDB,id):
     result=[]
     for i in temp:
         result.append(i[0])
-    print("result=",result)
     if str(id) not in result:
         sql = """CREATE TABLE `%s` (
                 `Index` INT(11) NOT NULL AUTO_INCREMENT,

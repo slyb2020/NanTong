@@ -287,6 +287,7 @@ class MainPanel(wx.Panel):
         self.mainTimer = wx.Timer(self)
         self.mainTimer.Start(1000)
         self.Bind(wx.EVT_TIMER, self.OnMainTimer)
+
     def OnMainTimer(self,event):
         if self.work_zone_Panel.orderManagementPanel.IsShown():
             self.work_zone_Panel.orderManagementPanel.ReCreate()
@@ -324,6 +325,41 @@ class MainPanel(wx.Panel):
         Images = wx.ImageList(16, 16)
         Images.Add(GetExpandedIconBitmap())
         Images.Add(GetCollapsedIconBitmap())
+
+        if self.parent.operatorCharacter in ["技术员","下单员","管理员"]:
+            item = self._pnl.AddFoldPanel("订单操作面板", collapsed=False,
+                                          foldIcons=Images)
+            item.SetLabel("订单操作面板")
+            panel = wx.Panel(item, -1, size=(300, 700))
+            vbox = wx.BoxSizer(wx.VERTICAL)
+            if self.parent.operatorCharacter == "下单员":
+                bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
+                                   wx.BITMAP_TYPE_PNG)
+                self.newOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  新建订单", size=(100, 50))
+                self.newOrderBTN.Bind(wx.EVT_BUTTON,self.OnCreateNewOrderBTN)
+                self.newOrderBTN.SetForegroundColour(wx.BLACK)
+                # self.editOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  批量排产", size=(100, 50))
+                # self.editOrderBTN.SetForegroundColour(wx.BLACK)
+                static = wx.StaticLine(panel, -1)
+                vbox.Add(self.newOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+            # vbox.Add(self.editOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+                vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+            if self.parent.operatorCharacter in ["下单员","技术员","管理员"]:
+                value = "草稿订单"
+                if self.parent.operatorCharacter == "下单员":
+                    value = "草稿订单"
+                self.orderTypeCOMBO = wx.ComboBox(panel,value=value,choices=["草稿订单","在产订单","完工订单","废弃订单"])
+                self.orderTypeCOMBO.Bind(wx.EVT_COMBOBOX,self.OnOrderTypeCOMBOChanged)
+                vbox.Add(self.orderTypeCOMBO,0,wx.EXPAND)
+            self.orderInfoPanel=wx.Panel(panel,size=(-1,500))
+            vbox.Add(self.orderInfoPanel,1,wx.EXPAND)
+            panel.SetSizer(vbox)
+            # self.ReCreateOrderInfoPanel()
+            self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
+            if self.parent.operatorCharacter in ["下单员",'技术员']:
+                item.Expand()
+            else:
+                item.Collapse()
 
         if self.parent.operatorCharacter in ["技术员","管理员"]:
             item = self._pnl.AddFoldPanel("基材操作面板", collapsed=False,
@@ -363,47 +399,13 @@ class MainPanel(wx.Panel):
             vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
             panel.SetSizer(vbox)
             self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
-            if self.parent.operatorCharacter == "技术员":
-                item.Expand()
-            else:
-                item.Collapse()
+            item.Collapse()
+            # if self.parent.operatorCharacter == "管理员":
+            #     item.Expand()
+            # else:
+            #     item.Collapse()
 
-        if self.parent.operatorCharacter in ["技术员","下单员","管理员"]:
-            item = self._pnl.AddFoldPanel("订单操作面板", collapsed=False,
-                                          foldIcons=Images)
-            item.SetLabel("订单操作面板")
-            panel = wx.Panel(item, -1, size=(300, 700))
-            vbox = wx.BoxSizer(wx.VERTICAL)
-            if self.parent.operatorCharacter == "下单员":
-                bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
-                                   wx.BITMAP_TYPE_PNG)
-                self.newOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  新建订单", size=(100, 50))
-                self.newOrderBTN.Bind(wx.EVT_BUTTON,self.OnCreateNewOrderBTN)
-                self.newOrderBTN.SetForegroundColour(wx.BLACK)
-                # self.editOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  批量排产", size=(100, 50))
-                # self.editOrderBTN.SetForegroundColour(wx.BLACK)
-                static = wx.StaticLine(panel, -1)
-                vbox.Add(self.newOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            # vbox.Add(self.editOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-                vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            if self.parent.operatorCharacter in ["下单员","技术员","管理员"]:
-                value = "在产订单"
-                if self.parent.operatorCharacter == "下单员":
-                    value = "草稿订单"
-                self.orderTypeCOMBO = wx.ComboBox(panel,value=value,choices=["草稿订单","在产订单","完工订单","废弃订单"])
-                self.orderTypeCOMBO.Bind(wx.EVT_COMBOBOX,self.OnOrderTypeCOMBOChanged)
-                vbox.Add(self.orderTypeCOMBO,0,wx.EXPAND)
-            self.orderInfoPanel=wx.Panel(panel,size=(-1,500))
-            vbox.Add(self.orderInfoPanel,1,wx.EXPAND)
-            panel.SetSizer(vbox)
-            # self.ReCreateOrderInfoPanel()
-            self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
-            if self.parent.operatorCharacter == "下单员":
-                item.Expand()
-            else:
-                item.Collapse()
-
-        if self.parent.operatorCharacter in ["技术员","管理员"]:
+        if self.parent.operatorCharacter in ["管理员"]:
             item = self._pnl.AddFoldPanel("生产管理面板", collapsed=False,
                                           foldIcons=Images)
             item.SetLabel("生产管理面板")
@@ -425,10 +427,11 @@ class MainPanel(wx.Panel):
             panel.SetSizer(vbox)
             # self.ReCreateOrderInfoPanel()
             self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
-            if self.parent.operatorCharacter == "下单员":
-                item.Expand()
-            else:
-                item.Collapse()
+            item.Collapse()
+            # if self.parent.operatorCharacter == "下单员":
+            #     item.Expand()
+            # else:
+            #     item.Collapse()
 
         # if self.parent.operatorCharacter in ["技术员","管理员"]:
         #     cs = fpb.CaptionBarStyle()
@@ -980,10 +983,9 @@ class WorkZonePanel(wx.Panel):
         self.SetSizer(hbox)
         self.systemIntroductionPanel = SystemIntroductionPanel(self.notebook)
         self.notebook.AddPage(self.systemIntroductionPanel,"系统介绍")
-        print("身份：",self.master.operatorCharacter)
         if self.master.operatorCharacter in ["技术员","下单员","管理员","财务人员","采购员"]:
             if self.master.operatorCharacter == "技术员":
-                self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,character=self.master.operatorCharacter,type="在产")
+                self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,character=self.master.operatorCharacter,type="草稿")
             else:
                 self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,character=self.master.operatorCharacter)
             self.notebook.AddPage(self.orderManagementPanel, "订单管理")

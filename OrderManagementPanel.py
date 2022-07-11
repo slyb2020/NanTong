@@ -1088,10 +1088,17 @@ class DraftOrderPanel(wx.Panel):
         pass
 
     def OnStartTechCheck(self,event):
+        self.master.checkDataTimer.Stop()
         UpdateTechCheckStateByID(self.log,WHICHDB,self.ID,"I")
-        self.techCheckFrame = TechCheckFrame(self, self.log,self.ID,character="技术员")
-        self.techCheckFrame.Show(True)
-        self.techCheckFrame.CenterOnScreen()
+        # self.techCheckFrame = wx.MessageDialog(self,"测试进行中")
+        # self.techCheckFrame.ShowModal()
+        self.techCheckDialog = TechCheckDialog(self, self.log,self.ID,character="技术员")
+        self.techCheckDialog.CenterOnScreen()
+        self.techCheckDialog.ShowModal()
+        # self.techCheckFrame = TechCheckFrame(self, self.log,self.ID,character="技术员")
+        # self.techCheckFrame.Show(True)
+        # self.techCheckFrame.CenterOnScreen()
+        self.master.checkDataTimer.Start(10000)
 
     def OnFinishTechCheck(self,event):
         UpdateTechCheckStateByID(self.log,WHICHDB,self.ID,"Y")
@@ -1316,18 +1323,45 @@ class DraftCheckFrame(wx.Frame):
             dicList = [dict(zip(sectionList, row)) for row in data]
         return dicList
 
-class TechCheckFrame(wx.Frame):
+class TechCheckDialog(wx.Dialog):
     def __init__(self, parent, log,id,character):
+        wx.Dialog.__init__(self)
         self.parent = parent
         self.log = log
         self.id = id
         self.character = character
-        wx.Frame.__init__(
-            self, parent, -1, "技术审核窗口 —— %05d"%self.id, size=(1350,800)
-        )
-        self.SetBackgroundColour(wx.Colour(240,240,240))
-        self.Freeze()
-        self.notebook = wx.Notebook(self, -1, size=(21, 21), style=
+        # self.log.WriteText("操作员：'%s' 开始执行库存参数设置操作。。。\r\n"%(self.parent.operator_name))
+        self.SetExtraStyle(wx.DIALOG_EX_METAL)
+        self.Create(parent, -1, "新建订单对话框", pos=wx.DefaultPosition ,size=(1350,800))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.panel = wx.Panel(self, size=(1350,750))
+        sizer.Add(self.panel,1,wx.EXPAND)
+        line = wx.StaticLine(self, -1, size=(30, -1), style=wx.LI_HORIZONTAL)
+        sizer.Add(line, 0, wx.GROW | wx.RIGHT | wx.TOP, 5)
+
+        btnsizer = wx.BoxSizer()
+        bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
+        bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
+        bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
+        btnSave = wx.Button(self, -1, "保存",size=(200,50))
+        btnSave.SetBitmap(bitmap3,wx.LEFT)
+        btn_ok = wx.Button(self, wx.ID_OK, "保存并退出", size=(200, 50))
+        btn_ok.SetBitmap(bitmap1, wx.LEFT)
+        btn_cancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
+        btn_cancel.SetBitmap(bitmap2, wx.LEFT)
+        btnsizer.Add(btnSave, 0)
+        btnsizer.Add((40, -1), 0)
+        btnsizer.Add(btn_ok, 0)
+        btnsizer.Add((40, -1), 0)
+        btnsizer.Add(btn_cancel, 0)
+        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+        self.SetSizer(sizer)
+        sizer.Fit(self)
+        self.ReCreate()
+
+    def ReCreate(self):
+        self.panel.Freeze()
+        self.notebook = wx.Notebook(self.panel, -1, size=(21, 21), style=
                                     # wx.BK_DEFAULT
                                     # wx.BK_TOP
                                     wx.BK_BOTTOM
@@ -1346,20 +1380,20 @@ class TechCheckFrame(wx.Frame):
         idx6 = il.Add(images._rt_redo.GetBitmap())
         vbox = wx.BoxSizer(wx.VERTICAL)
         vbox.Add(self.notebook, 1, wx.EXPAND)
-        hhbox = wx.BoxSizer()
-        saveBTN = wx.Button(self, -1, "保存",size=(100,45))
-        saveBTN.SetDefault()
-        saveBTN.Bind(wx.EVT_BUTTON, self.OnSaveBTN)
-        hhbox.Add(saveBTN,1,wx.ALL,10)
-        saveExitBTN = wx.Button(self, -1, "保存并退出",size=(100,45))
-        saveExitBTN.Bind(wx.EVT_BUTTON, self.OnSaveExitBTN)
-        hhbox.Add(saveExitBTN,1,wx.ALL,10)
-        cancelBTN = wx.Button(self, -1, "取消",size=(100,45))
-        cancelBTN.Bind(wx.EVT_BUTTON, self.OnCancelBTN)
-        hhbox.Add(cancelBTN,1,wx.ALL,10)
-        vbox.Add(hhbox,0,wx.EXPAND)
-        self.SetSizer(vbox)
-        self.Layout()
+        # hhbox = wx.BoxSizer()
+        # saveBTN = wx.Button(self, -1, "保存",size=(100,45))
+        # saveBTN.SetDefault()
+        # # saveBTN.Bind(wx.EVT_BUTTON, self.OnSaveBTN)
+        # hhbox.Add(saveBTN,1,wx.ALL,10)
+        # saveExitBTN = wx.Button(self, -1, "保存并退出",size=(100,45))
+        # # saveExitBTN.Bind(wx.EVT_BUTTON, self.OnSaveExitBTN)
+        # hhbox.Add(saveExitBTN,1,wx.ALL,10)
+        # cancelBTN = wx.Button(self, -1, "取消",size=(100,45))
+        # # cancelBTN.Bind(wx.EVT_BUTTON, self.OnCancelBTN)
+        # hhbox.Add(cancelBTN,1,wx.ALL,10)
+        # vbox.Add(hhbox,0,wx.EXPAND)
+        self.panel.SetSizer(vbox)
+        self.panel.Layout()
         self.wallCheckPanel = wx.Panel(self.notebook)
         self.notebook.AddPage(self.wallCheckPanel, "TNF Wall Panel")
         self.ceilingCheckPanel = wx.Panel(self.notebook)
@@ -1370,7 +1404,7 @@ class TechCheckFrame(wx.Frame):
         self.notebook.AddPage(self.doorAccessoryCheckPanel, "TNF Door Accessory")
         self.wetUnitCheckPanel = wx.Panel(self.notebook)
         self.notebook.AddPage(self.wetUnitCheckPanel, "TNF Wet Unit")
-        self.Thaw()
+        self.panel.Thaw()
 
         # p = wx.Panel(self, -1, style=0)
         hbox = wx.BoxSizer()
@@ -1379,52 +1413,115 @@ class TechCheckFrame(wx.Frame):
         self.wallCheckPanel.SetSizer(hbox)
         self.wallCheckPanel.Layout()
 
-    def OnSaveExitBTN(self,evt):
-        error=self.Save()
-        if not error:
-            self.Close()
-        evt.Skip()
-
-    def OnCancelBTN(self,evt):
-        self.Close()
-        evt.Skip()
-
-    def OnSaveBTN(self, evt):
-        self.Save()
-        evt.Skip()
-
-    def Save(self):
-        rowNum = self.wallPanelCheckGrid.table.GetNumberRows()
-        colNum = self.wallPanelCheckGrid.table.GetNumberCols()
-        data=[]
-        error=False
-        for i in range(rowNum-1):
-            temp = ["WALL"]
-            for j in range(colNum):
-                temp.append(self.wallPanelCheckGrid.table.GetValue(i,j))
-            data.append(temp)
-        self.wallDataDicList = self.MakeDicListData(data,"WALL")
-        for row,dics in enumerate(self.wallDataDicList):
-            for col,section in enumerate(WallCheckEnableSectionList):
-                if dics[section] == '':
-                    if section!="产品描述":
-                        self.wallPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,200,200))
-                        self.wallPanelCheckGrid.Refresh()
-                        wx.MessageBox("'%s'字段不能为空！"%section,"信息提示")
-                        return True
-                else:
-                    self.wallPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,255,255))
-                    self.wallPanelCheckGrid.Refresh()
-        UpdateDrafCheckInfoByID(self.log,WHICHDB,self.id,self.wallDataDicList)
-        return False
-
-    def MakeDicListData(self,data,type):
-        dicList=[]
-        if type=="WALL":
-            sectionList=copy.deepcopy(WallCheckEnableSectionList)
-            sectionList.insert(0,"类别")
-            dicList = [dict(zip(sectionList, row)) for row in data]
-        return dicList
+# class TechCheckFrame(wx.Frame):
+#     def __init__(self, parent, log,id,character):
+#         self.parent = parent
+#         self.log = log
+#         self.id = id
+#         self.character = character
+#         wx.Frame.__init__(
+#             self, parent, -1, "技术审核窗口 —— %05d"%self.id, size=(1350,800)
+#         )
+#         self.SetBackgroundColour(wx.Colour(240,240,240))
+#         self.Freeze()
+#         self.notebook = wx.Notebook(self, -1, size=(21, 21), style=
+#                                     # wx.BK_DEFAULT
+#                                     # wx.BK_TOP
+#                                     wx.BK_BOTTOM
+#                                     # wx.BK_LEFT
+#                                     # wx.BK_RIGHT
+#                                     # | wx.NB_MULTILINE
+#                                     )
+#         il = wx.ImageList(16, 16)
+#         idx1 = il.Add(images._rt_smiley.GetBitmap())
+#         self.total_page_num = 0
+#         self.notebook.AssignImageList(il)
+#         idx2 = il.Add(images.GridBG.GetBitmap())
+#         idx3 = il.Add(images.Smiles.GetBitmap())
+#         idx4 = il.Add(images._rt_undo.GetBitmap())
+#         idx5 = il.Add(images._rt_save.GetBitmap())
+#         idx6 = il.Add(images._rt_redo.GetBitmap())
+#         vbox = wx.BoxSizer(wx.VERTICAL)
+#         vbox.Add(self.notebook, 1, wx.EXPAND)
+#         hhbox = wx.BoxSizer()
+#         saveBTN = wx.Button(self, -1, "保存",size=(100,45))
+#         saveBTN.SetDefault()
+#         saveBTN.Bind(wx.EVT_BUTTON, self.OnSaveBTN)
+#         hhbox.Add(saveBTN,1,wx.ALL,10)
+#         saveExitBTN = wx.Button(self, -1, "保存并退出",size=(100,45))
+#         saveExitBTN.Bind(wx.EVT_BUTTON, self.OnSaveExitBTN)
+#         hhbox.Add(saveExitBTN,1,wx.ALL,10)
+#         cancelBTN = wx.Button(self, -1, "取消",size=(100,45))
+#         cancelBTN.Bind(wx.EVT_BUTTON, self.OnCancelBTN)
+#         hhbox.Add(cancelBTN,1,wx.ALL,10)
+#         vbox.Add(hhbox,0,wx.EXPAND)
+#         self.SetSizer(vbox)
+#         self.Layout()
+#         self.wallCheckPanel = wx.Panel(self.notebook)
+#         self.notebook.AddPage(self.wallCheckPanel, "TNF Wall Panel")
+#         self.ceilingCheckPanel = wx.Panel(self.notebook)
+#         self.notebook.AddPage(self.ceilingCheckPanel, "TNF Ceiling Panel")
+#         self.interiorDoorCheckPanel = wx.Panel(self.notebook)
+#         self.notebook.AddPage(self.interiorDoorCheckPanel, "TNF Interior Door")
+#         self.doorAccessoryCheckPanel = wx.Panel(self.notebook)
+#         self.notebook.AddPage(self.doorAccessoryCheckPanel, "TNF Door Accessory")
+#         self.wetUnitCheckPanel = wx.Panel(self.notebook)
+#         self.notebook.AddPage(self.wetUnitCheckPanel, "TNF Wet Unit")
+#         self.Thaw()
+#
+#         # p = wx.Panel(self, -1, style=0)
+#         hbox = wx.BoxSizer()
+#         self.wallPanelCheckGrid = WallPanelTechCheckGrid(self.wallCheckPanel, self.log, type="WALL", id=self.id)
+#         hbox.Add(self.wallPanelCheckGrid, 1, wx.EXPAND)
+#         self.wallCheckPanel.SetSizer(hbox)
+#         self.wallCheckPanel.Layout()
+#
+#     def OnSaveExitBTN(self,evt):
+#         error=self.Save()
+#         if not error:
+#             self.Close()
+#         evt.Skip()
+#
+#     def OnCancelBTN(self,evt):
+#         self.Close()
+#         evt.Skip()
+#
+#     def OnSaveBTN(self, evt):
+#         self.Save()
+#         evt.Skip()
+#
+#     def Save(self):
+#         rowNum = self.wallPanelCheckGrid.table.GetNumberRows()
+#         colNum = self.wallPanelCheckGrid.table.GetNumberCols()
+#         data=[]
+#         error=False
+#         for i in range(rowNum-1):
+#             temp = ["WALL"]
+#             for j in range(colNum):
+#                 temp.append(self.wallPanelCheckGrid.table.GetValue(i,j))
+#             data.append(temp)
+#         self.wallDataDicList = self.MakeDicListData(data,"WALL")
+#         for row,dics in enumerate(self.wallDataDicList):
+#             for col,section in enumerate(WallCheckEnableSectionList):
+#                 if dics[section] == '':
+#                     if section!="产品描述":
+#                         self.wallPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,200,200))
+#                         self.wallPanelCheckGrid.Refresh()
+#                         wx.MessageBox("'%s'字段不能为空！"%section,"信息提示")
+#                         return True
+#                 else:
+#                     self.wallPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,255,255))
+#                     self.wallPanelCheckGrid.Refresh()
+#         UpdateDrafCheckInfoByID(self.log,WHICHDB,self.id,self.wallDataDicList)
+#         return False
+#
+#     def MakeDicListData(self,data,type):
+#         dicList=[]
+#         if type=="WALL":
+#             sectionList=copy.deepcopy(WallCheckEnableSectionList)
+#             sectionList.insert(0,"类别")
+#             dicList = [dict(zip(sectionList, row)) for row in data]
+#         return dicList
 
 class WallPanelCheckDataTable(gridlib.GridTableBase):
     def __init__(self, log ,type,data):
