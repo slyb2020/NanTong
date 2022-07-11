@@ -1665,6 +1665,7 @@ def InsertPanelDetailIntoPackageDB(log, whichDB, orderTabelName, orderDataList):
 def InsertNewOrder(log,whichDB,dic,operatorID):
     result = 1
     print("whichDB=",whichDB)
+    print("dic=",dic)
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
@@ -1704,11 +1705,11 @@ def InsertNewOrder(log,whichDB,dic,operatorID):
                        "订单名称":"1.订单名称 *",
                        "客户名称":"2.客户单位名称",
                        "客户公司信息":"3.客户公司信息",
-                       "联系人":"4.联系人姓名",
+                       "联系人":"4.联系人姓名 *",
                        "联系人电话":"5.联系人电话",
-                       "联系人邮箱":"6.联系人email",
-                       "投标方式":"2.投标方式",
-                       "投标格式":"3.投标格式",
+                       "联系人邮箱":"6.联系人email *",
+                       # "投标方式":"2.投标方式",
+                       # "投标格式":"3.投标格式",
                        "下单时间":"7.下单日期",
                        "投标时间":"1.投标日期"
                     }
@@ -1729,11 +1730,11 @@ def InsertNewOrder(log,whichDB,dic,operatorID):
             print("error1")
             db.rollback()
 
-    if dic["1.图纸文件 *"]!='':
-        data = TransformBase64(dic["1.图纸文件 *"])
+    if dic["1.产品清单或图纸文件 *"]!='':
+        data = TransformBase64(dic["1.产品清单或图纸文件 *"])
     else:
         data = ""
-    sql = "UPDATE `订单信息` SET `客户原始技术图纸名`= '%s' where `Index`= %s "%(json.dumps(dic["1.图纸文件 *"],ensure_ascii=False), id)
+    sql = "UPDATE `订单信息` SET `客户原始技术图纸名`= '%s' where `Index`= %s "%(json.dumps(dic["1.产品清单或图纸文件 *"],ensure_ascii=False), id)
     try:
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行

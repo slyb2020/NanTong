@@ -177,7 +177,7 @@ class FlatMenuFrame(wx.Frame):
             password = dlg.pswTXT.GetValue()
         dlg.Destroy()
         if password != '' and password in self.pswList:
-            _, staffInfo = GetStaffInfoWithPassword(None, 1, password)
+            _, staffInfo = GetStaffInfoWithPassword(None, WHICHDB, password)
             if staffInfo[5] == "在职":
                 self.operatorCharacter = staffInfo[2]
                 self.operatorName = staffInfo[3]

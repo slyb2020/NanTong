@@ -330,7 +330,6 @@ class OrderManagementPanel(wx.Panel):
 
     def ReCreate(self):
         if self.recreateEnable:
-            print("refreshData")
             self.recreateEnable = False
             self.Freeze()
             self.DestroyChildren()
@@ -339,7 +338,7 @@ class OrderManagementPanel(wx.Panel):
             # if self.parent.master.operatorCharacter=="下单员":
             if self.type == "草稿":
                 self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术审核","采购审核","财务审核","经理审核"]
-                self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      60,       60,       60,       60]
+                self.colWidthList =      [60,    60,          80,      80,    80,      85,       85,      60,     60,      60,       60,       60,       60]
             elif self.type =="在产":
                 self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
                 self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
@@ -359,14 +358,12 @@ class OrderManagementPanel(wx.Panel):
                 record = list(record)
                 startDay = datetime.date.today()
                 temp = record[4].split('-')
-                print("temp=",temp)
-                print("record[4]=",record[4])
                 endDay = datetime.date(year=int(temp[0]),month=int(temp[1]),day=int(temp[2]))
                 # endDay = wxdate2pydate(json.loads(record[4]))
                 # endDay = datetime.date.today()+datetime.timedelta(days=5)
                 record.insert(0,(endDay-startDay).days)
                 record[1]="%05d"%int(record[1])
-                if record[3]=="":
+                if record[3]=="" or record[3]==None:
                     record[3]="暂无报价"
                 if record[4]=='0':
                     record[4]=""
@@ -534,13 +531,13 @@ class OrderManagementPanel(wx.Panel):
             self.ReCreateRightPanel()
             if self.character=="下单员":
                 self.ReCreateOrderEditPanel()
-            if self.character in ["下单员","技术员"]:
+            if self.character in ["技术员"]:
                 self.ReCreateTechCheckPanel()
-            if self.character in ["下单员","采购员"]:
+            if self.character in ["采购员"]:
                 self.ReCreatePurchaseCheckPanel()
-            if self.character in ["下单员","财务"]:
+            if self.character in ["财务人员"]:
                 self.ReCreateFinancialCheckPanel()
-            if self.character in ["下单员","经理"]:
+            if self.character in ["经理"]:
                 self.ReCreateManagerCheckPanel()
         elif self.type in orderWorkingStateList:
             if self.busy == False:
@@ -635,14 +632,15 @@ class OrderManagementPanel(wx.Panel):
                 self.orderEditPanel = wx.Panel(self.notebook,size=(260,-1))
                 self.notebook.AddPage(self.orderEditPanel, "订单部审核")
                 self.ReCreateOrderEditPanel()
-            self.orderTechCheckPanel = wx.Panel(self.notebook,size=(260,-1))
-            self.notebook.AddPage(self.orderTechCheckPanel, "技术部审核")
-            self.orderPurchaseCheckPanel = wx.Panel(self.notebook,size=(260,-1))
-            self.notebook.AddPage(self.orderPurchaseCheckPanel, "采购部审核")
-            self.orderFinancialCheckPanel = wx.Panel(self.notebook,size=(260,-1))
-            self.notebook.AddPage(self.orderFinancialCheckPanel, "财务部审核")
-            self.orderManagerCheckPanel = wx.Panel(self.notebook,size=(260,-1))
-            self.notebook.AddPage(self.orderManagerCheckPanel, "经理审核")
+            if self.master.operatorCharacter=="技术员":
+                self.orderTechCheckPanel = wx.Panel(self.notebook,size=(260,-1))
+                self.notebook.AddPage(self.orderTechCheckPanel, "技术部审核")
+            # self.orderPurchaseCheckPanel = wx.Panel(self.notebook,size=(260,-1))
+            # self.notebook.AddPage(self.orderPurchaseCheckPanel, "采购部审核")
+            # self.orderFinancialCheckPanel = wx.Panel(self.notebook,size=(260,-1))
+            # self.notebook.AddPage(self.orderFinancialCheckPanel, "财务部审核")
+            # self.orderManagerCheckPanel = wx.Panel(self.notebook,size=(260,-1))
+            # self.notebook.AddPage(self.orderManagerCheckPanel, "经理审核")
         self.rightPanel.Thaw()
 
 
@@ -825,70 +823,74 @@ class DraftOrderPanel(wx.Panel):
         pg.Append( wxpg.StringProperty("1.订单名称 *",value=self.orderName) )
         pg.Append( wxpg.StringProperty("2.客户单位名称",value=self.customerName) )
         pg.Append( wxpg.StringProperty("3.客户公司信息",value=self.customerInfo) )
-        pg.Append( wxpg.StringProperty("4.联系人姓名",value=self.contactsName) )
+        pg.Append( wxpg.StringProperty("4.联系人姓名 *",value=self.contactsName) )
         pg.Append( wxpg.StringProperty("5.联系人电话",value=self.phoneNumber) )
-        pg.Append( wxpg.StringProperty("6.联系人email",value=self.email))
+        pg.Append( wxpg.StringProperty("6.联系人email *",value=self.email))
         pg.Append( wxpg.DateProperty("7.下单日期",value=self.makeOrderDate) )
 
         pg.Append( wxpg.PropertyCategory("2 - 询价文件") )
 
         pg.Append( wxpg.DateProperty("1.投标日期",value=self.bidDate) )
-        pg.Append( wxpg.EnumProperty("2.投标方式","2.投标方式",
-                                     BIDMODE,
-                                     [0,1,2],
-                                     BIDMODE.index(self.bidMode)) )
-        pg.Append( wxpg.EnumProperty("3.投标格式","3.投标格式",
-                                     BIDMETHOD,
-                                     [0,1],
-                                     BIDMETHOD.index(self.bidMethod)) )
+        # pg.Append( wxpg.EnumProperty("2.投标方式","2.投标方式",
+        #                              BIDMODE,
+        #                              [0,1,2],
+        #                              BIDMODE.index(self.bidMode)) )
+        # pg.Append( wxpg.EnumProperty("3.投标格式","3.投标格式",
+        #                              BIDMETHOD,
+        #                              [0,1],
+        #                              BIDMETHOD.index(self.bidMethod)) )
 
         pg.Append(wxpg.PropertyCategory("3 - 附件"))
         if self.mode in ["NEW","EDIT"]:
-            pg.Append( wxpg.FileProperty("1.图纸文件 *",value=self.techDrawingName) )
-            pg.Append( wxpg.FileProperty("2.保密协议文档",value=self.secureProtocolName) )
-            pg.Append( wxpg.FileProperty("3.邀标信息文档",value=self.bidDocName) )
-            pg.Append( wxpg.FileProperty("4.技术要求文档",value=self.techRequireDocName) )
+            pg.Append( wxpg.FileProperty("1.产品清单或图纸文件 *",value=self.techDrawingName) )
+            pg.Append( wxpg.FileProperty("2.产品清单或图纸文件",value=self.secureProtocolName) )
+            pg.Append( wxpg.FileProperty("3.产品清单或图纸文件",value=self.bidDocName) )
+            pg.Append( wxpg.FileProperty("4.产品清单或图纸文件",value=self.techRequireDocName) )
 
-            pg.SetPropertyAttribute( "1.图纸文件 *", wxpg.PG_FILE_SHOW_FULL_PATH, 0 )
+            pg.SetPropertyAttribute( "1.产品清单或图纸文件 *", wxpg.PG_FILE_SHOW_FULL_PATH, 0 )
+            pg.SetPropertyAttribute( "2.产品清单或图纸文件", wxpg.PG_FILE_SHOW_FULL_PATH, 0 )
+            pg.SetPropertyAttribute( "3.产品清单或图纸文件", wxpg.PG_FILE_SHOW_FULL_PATH, 0 )
+            pg.SetPropertyAttribute( "4.产品清单或图纸文件", wxpg.PG_FILE_SHOW_FULL_PATH, 0 )
             # pg.SetPropertyAttribute( "1.图纸文件 *", wxpg.PG_FILE_INITIAL_PATH,
             #                          r"C:\Program Files\Internet Explorer" )
             pg.SetPropertyAttribute( "1.投标日期", wxpg.PG_DATE_PICKER_STYLE,
                                      wx.adv.DP_DROPDOWN|wx.adv.DP_SHOWCENTURY )
             topsizer.Add(pg, 1, wx.EXPAND)
             if self.character == "下单员":
-                rowsizer = wx.BoxSizer(wx.HORIZONTAL)
-                but = wx.Button(panel, -1, "保存修改", size=(-1, 35))
-                but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
-                rowsizer.Add(but, 1)
-                but = wx.Button(panel, -1, "取消修改", size=(-1, 35))
-                but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditCancelBTN)
-                rowsizer.Add(but, 1)
-                topsizer.Add(rowsizer, 0, wx.EXPAND)
-                rowsizer = wx.BoxSizer(wx.HORIZONTAL)
-                but = wx.Button(panel, -1, "订单废弃", size=(-1, 35))
-                # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
-                rowsizer.Add(but, 1)
-                but = wx.Button(panel, -1, "订单投产", size=(-1, 35))
-                # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditCancelBTN)
-                rowsizer.Add(but, 1)
-                topsizer.Add(rowsizer, 0, wx.EXPAND)
-                rowsizer = wx.BoxSizer(wx.HORIZONTAL)
-                but = wx.Button(panel, -1, "生成报价单", size=(-1, 35))
-                # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
-                rowsizer.Add(but, 1)
-                topsizer.Add(rowsizer, 0, wx.EXPAND)
-                # btnsizer = wx.BoxSizer()
-                # bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
-                # bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
-                # bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
-                # btn_ok = wx.Button(self.orderEditPanel, wx.ID_OK, "确 认 修 改", size=(200, 50))
-                # btn_ok.Bind(wx.EVT_BUTTON,self.OnDraftOrderEditOkBTN)
-                # btn_ok.SetBitmap(bitmap1, wx.LEFT)
-                # btnsizer.Add(btn_ok, 0)
-                # btnsizer.Add((40, -1), 0)
-                # sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
-                # self.orderEditPanel.SetSizer(sizer)
-                # sizer.Fit(self.orderEditPanel)
+                if self.ID != None:
+                    rowsizer = wx.BoxSizer(wx.HORIZONTAL)
+                    but = wx.Button(panel, -1, "保存修改", size=(-1, 35))
+                    but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
+                    rowsizer.Add(but, 1)
+                    but = wx.Button(panel, -1, "取消修改", size=(-1, 35))
+                    but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditCancelBTN)
+                    rowsizer.Add(but, 1)
+                    topsizer.Add(rowsizer, 0, wx.EXPAND)
+                    rowsizer = wx.BoxSizer(wx.HORIZONTAL)
+                    but = wx.Button(panel, -1, "订单废弃", size=(-1, 35))
+                    # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
+                    rowsizer.Add(but, 1)
+                    but = wx.Button(panel, -1, "订单投产", size=(-1, 35))
+                    # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditCancelBTN)
+                    rowsizer.Add(but, 1)
+                    topsizer.Add(rowsizer, 0, wx.EXPAND)
+                    rowsizer = wx.BoxSizer(wx.HORIZONTAL)
+                    but = wx.Button(panel, -1, "生成报价单", size=(-1, 35))
+                    # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
+                    rowsizer.Add(but, 1)
+                    topsizer.Add(rowsizer, 0, wx.EXPAND)
+                    # btnsizer = wx.BoxSizer()
+                    # bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
+                    # bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
+                    # bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
+                    # btn_ok = wx.Button(self.orderEditPanel, wx.ID_OK, "确 认 修 改", size=(200, 50))
+                    # btn_ok.Bind(wx.EVT_BUTTON,self.OnDraftOrderEditOkBTN)
+                    # btn_ok.SetBitmap(bitmap1, wx.LEFT)
+                    # btnsizer.Add(btn_ok, 0)
+                    # btnsizer.Add((40, -1), 0)
+                    # sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+                    # self.orderEditPanel.SetSizer(sizer)
+                    # sizer.Fit(self.orderEditPanel)
         else:
             techDrawingName = self.techDrawingName.split("\\")[-1]
             techDrawingName = "%d."%self.ID+techDrawingName
@@ -1113,9 +1115,7 @@ class WallPanelOtherCheckGrid(gridlib.Grid):
             self.data.append(temp)
         self.SetDefaultRowSize(30)
         self.colLabels = OtherCheckTitleDict[self.type]
-        print(self.colLabels)
         self.colWidths = OtherCheckColWidthDict[self.type]
-        print(self.colWidths)
         self.CreateGrid(len(self.data), len(self.colLabels))#, gridlib.Grid.SelectRows)
         self.SetRowLabelSize(80)
         self.SetColLabelSize(60)

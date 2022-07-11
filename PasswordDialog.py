@@ -1,6 +1,7 @@
 import wx
 import os
 from DBOperation import GetAllPasswords
+from ID_DEFINE import *
 
 dirName = os.path.dirname(os.path.abspath(__file__))
 bitmapDir = os.path.join(dirName, 'bitmaps')
@@ -46,7 +47,7 @@ class PasswordDialog(wx.Dialog):
         btn_ok.Bind(wx.EVT_BUTTON, self.OnOk)
         btn_cancel.Bind(wx.EVT_BUTTON, self.OnCancel)
         self.tryTimes=4
-        _, self.parent.pswList = GetAllPasswords(None,1)
+        _, self.parent.pswList = GetAllPasswords(None,WHICHDB)
 
     def OnOk(self, event):
         psw = self.pswTXT.GetValue()
