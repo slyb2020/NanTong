@@ -93,8 +93,8 @@ class FlatMenuFrame(wx.Frame):
         view2Bmp = wx.Bitmap(bitmapDir+"/lbcharge.png", wx.BITMAP_TYPE_PNG)
         view4Bmp = wx.Bitmap(bitmapDir+"/filesave.png", wx.BITMAP_TYPE_PNG)
         contractBmp = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
-        order1Bmp = wx.Bitmap(bitmapDir+"/locked.png", wx.BITMAP_TYPE_PNG)
-        order2Bmp = wx.Bitmap(bitmapDir+"/opened.png", wx.BITMAP_TYPE_PNG)
+        order1Bmp = wx.Bitmap(bitmapDir+"/opened.png", wx.BITMAP_TYPE_PNG)
+        order2Bmp = wx.Bitmap(bitmapDir+"/locked.png", wx.BITMAP_TYPE_PNG)
         order3Bmp = wx.Bitmap(bitmapDir+"/order3.png", wx.BITMAP_TYPE_PNG)
         propertyBmp = wx.Bitmap(bitmapDir+"/property.png", wx.BITMAP_TYPE_PNG)
 

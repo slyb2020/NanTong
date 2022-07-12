@@ -1,6 +1,6 @@
 import copy
 from operator import itemgetter
-
+from mp3 import play
 import numpy as np
 import wx
 import wx.grid as gridlib
@@ -9,12 +9,11 @@ import wx.lib.agw.pybusyinfo as PBI
 from BluePrintManagementPanel import BluePrintShowPanel
 from DBOperation import GetAllOrderAllInfo, GetAllOrderList, GetOrderDetailRecord, InsertNewOrder, GetStaffInfoWithID, \
     GetDraftOrderDetailByID, UpdateDraftOrderInfoByID, GetTechDrawingDataByID,GetTechCheckStateByID,\
-    UpdateTechCheckStateByID,GetDraftWallInfoByID,UpdateDrafCheckInfoByID
+    UpdateTechCheckStateByID,GetDraftWallInfoByID,UpdateDrafCheckInfoByID,UpdateDraftOrderStateInDB
 from DateTimeConvert import *
 from ID_DEFINE import *
 from OrderDetailTree import OrderDetailTree
 from SetupPropertyDialog import *
-
 
 class OrderDetailGrid(gridlib.Grid): ##, mixins.GridAutoEditMixin):
     def __init__(self, parent, master, log):
@@ -353,6 +352,8 @@ class OrderManagementPanel(wx.Panel):
                 _, self.dataList = GetAllOrderAllInfo(self.log, WHICHDB,self.type)
             else:
                 self.log.WriteText("订单数据发生变化，系统完成显示更新！\r\n")
+                # play("10027.wav")
+                # wx.Bell()
             orderList=[]
             for record in self.dataList:#这个循环是把要在grid中显示的数据排序，对齐，内容规整好
                 record = list(record)
@@ -780,10 +781,22 @@ class DraftOrderPanel(wx.Panel):
             self.bidMode = dic["投标方式"]
             self.bidMethod = dic["投标格式"]
             self.techDrawingName = dic["客户原始技术图纸名"]
+            self.techDrawingName2 = dic["客户原始技术图纸名2"]
+            self.techDrawingName3 = dic["客户原始技术图纸名3"]
+            self.techDrawingName4 = dic["客户原始技术图纸名4"]
             self.techDrawingName = self.techDrawingName.strip("\"")
-            self.secureProtocolName = ""
-            self.bidDocName = ""
-            self.techRequireDocName = ""
+            if self.techDrawingName2 == None:
+                self.techDrawingName2 = ""
+            else:
+                self.techDrawingName2 = self.techDrawingName2.strip("\"")
+            if self.techDrawingName3 == None:
+                self.techDrawingName3 = ""
+            else:
+                self.techDrawingName3 = self.techDrawingName3.strip("\"")
+            if self.techDrawingName4 == None:
+                self.techDrawingName4 = ""
+            else:
+                self.techDrawingName4 = self.techDrawingName4.strip("\"")
 
         topsizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -843,9 +856,9 @@ class DraftOrderPanel(wx.Panel):
         pg.Append(wxpg.PropertyCategory("3 - 附件"))
         if self.mode in ["NEW","EDIT"]:
             pg.Append( wxpg.FileProperty("1.产品清单或图纸文件 *",value=self.techDrawingName) )
-            pg.Append( wxpg.FileProperty("2.产品清单或图纸文件",value=self.secureProtocolName) )
-            pg.Append( wxpg.FileProperty("3.产品清单或图纸文件",value=self.bidDocName) )
-            pg.Append( wxpg.FileProperty("4.产品清单或图纸文件",value=self.techRequireDocName) )
+            pg.Append( wxpg.FileProperty("2.产品清单或图纸文件",value=self.techDrawingName2) )
+            pg.Append( wxpg.FileProperty("3.产品清单或图纸文件",value=self.techDrawingName3) )
+            pg.Append( wxpg.FileProperty("4.产品清单或图纸文件",value=self.techDrawingName4) )
 
             pg.SetPropertyAttribute( "1.产品清单或图纸文件 *", wxpg.PG_FILE_SHOW_FULL_PATH, 0 )
             pg.SetPropertyAttribute( "2.产品清单或图纸文件", wxpg.PG_FILE_SHOW_FULL_PATH, 0 )
@@ -868,7 +881,7 @@ class DraftOrderPanel(wx.Panel):
                     topsizer.Add(rowsizer, 0, wx.EXPAND)
                     rowsizer = wx.BoxSizer(wx.HORIZONTAL)
                     but = wx.Button(panel, -1, "订单废弃", size=(-1, 35))
-                    # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
+                    but.Bind(wx.EVT_BUTTON, self.OnDraftOrderAbandonBTN)
                     rowsizer.Add(but, 1)
                     but = wx.Button(panel, -1, "订单投产", size=(-1, 35))
                     # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditCancelBTN)
@@ -894,14 +907,23 @@ class DraftOrderPanel(wx.Panel):
         else:
             techDrawingName = self.techDrawingName.split("\\")[-1]
             techDrawingName = "%d."%self.ID+techDrawingName
-            pg.Append( wxpg.LongStringProperty("1.技术图纸文件",value=techDrawingName))
-            pg.SetPropertyEditor("1.技术图纸文件", "TechDrawingButtonEditor")
-            pg.Append( wxpg.LongStringProperty("2.保密协议文档",value="1234.pdf"))
-            pg.SetPropertyEditor("2.保密协议文档", "SampleMultiButtonEditor")
-            pg.Append( wxpg.LongStringProperty("3.邀标信息文档",value="1234.pdf"))
-            pg.SetPropertyEditor("3.邀标信息文档", "SampleMultiButtonEditor")
-            pg.Append( wxpg.LongStringProperty("4.技术要求文档",value="1234.pdf"))
-            pg.SetPropertyEditor("4.技术要求文档", "SampleMultiButtonEditor")
+            techDrawingName2 = self.techDrawingName2.split("\\")[-1]
+            if techDrawingName2!="":
+                techDrawingName2 = "%d."%self.ID+techDrawingName2
+            techDrawingName3 = self.techDrawingName3.split("\\")[-1]
+            if techDrawingName3!="":
+                techDrawingName3 = "%d."%self.ID+techDrawingName3
+            techDrawingName4 = self.techDrawingName4.split("\\")[-1]
+            if techDrawingName4!="":
+                techDrawingName4 = "%d."%self.ID+techDrawingName4
+            pg.Append( wxpg.LongStringProperty("1.产品清单或图纸文件 *",value=techDrawingName))
+            pg.SetPropertyEditor("1.产品清单或图纸文件 *", "TechDrawingButtonEditor")
+            pg.Append( wxpg.LongStringProperty("2.产品清单或图纸文件",value=techDrawingName2))
+            pg.SetPropertyEditor("2.产品清单或图纸文件", "SampleMultiButtonEditor")
+            pg.Append( wxpg.LongStringProperty("3.产品清单或图纸文件",value=techDrawingName3))
+            pg.SetPropertyEditor("3.产品清单或图纸文件", "SampleMultiButtonEditor")
+            pg.Append( wxpg.LongStringProperty("4.产品清单或图纸文件",value=techDrawingName4))
+            pg.SetPropertyEditor("4.产品清单或图纸文件", "SampleMultiButtonEditor")
             topsizer.Add(pg, 1, wx.EXPAND)
             rowsizer = wx.BoxSizer(wx.HORIZONTAL)
             if self.character == "技术员":
@@ -1042,6 +1064,16 @@ class DraftOrderPanel(wx.Panel):
         self.SetSizer(sizer)
         self.Layout()
         self.Thaw()
+    def OnDraftOrderAbandonBTN(self,event):
+        dlg = wx.MessageDialog(self,"您确定要废弃此订单吗？","信息提示",style=wx.YES_NO)
+        if dlg.ShowModal() == wx.ID_YES:
+            if UpdateDraftOrderStateInDB(self.log,WHICHDB,self.ID,"废弃") == 0:
+                self.master.recreateEnable=True
+                self.master.ReCreate()
+                wx.MessageBox("订单已成功废弃，系统稍候刷新显示！","信息提示")
+            else:
+                wx.MessageBox("订单废弃操作失败！","信息提示")
+        dlg.Destroy()
 
     def OnDraftOrderEditOkBTN(self,event):
         d = self.pg.GetPropertyValues(inc_attributes=True)
@@ -1332,7 +1364,7 @@ class TechCheckDialog(wx.Dialog):
         self.character = character
         # self.log.WriteText("操作员：'%s' 开始执行库存参数设置操作。。。\r\n"%(self.parent.operator_name))
         self.SetExtraStyle(wx.DIALOG_EX_METAL)
-        self.Create(parent, -1, "新建订单对话框", pos=wx.DefaultPosition ,size=(1350,800))
+        self.Create(parent, -1, "技术审核对话框", pos=wx.DefaultPosition ,size=(1350,800))
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.panel = wx.Panel(self, size=(1350,750))
         sizer.Add(self.panel,1,wx.EXPAND)
@@ -1343,9 +1375,9 @@ class TechCheckDialog(wx.Dialog):
         bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
         bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
         bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
-        btnSave = wx.Button(self, -1, "保存",size=(200,50))
+        btnSave = wx.Button(self, -1, "保存技术审核数据",size=(200,50))
         btnSave.SetBitmap(bitmap3,wx.LEFT)
-        btn_ok = wx.Button(self, wx.ID_OK, "保存并退出", size=(200, 50))
+        btn_ok = wx.Button(self, wx.ID_OK, "完成技术审核并退出", size=(200, 50))
         btn_ok.SetBitmap(bitmap1, wx.LEFT)
         btn_cancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
         btn_cancel.SetBitmap(bitmap2, wx.LEFT)

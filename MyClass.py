@@ -41,7 +41,7 @@ from ManufactureManagementPanel import ManufactureManagementPanel
 from BoardManagementPanel import BoardManagementPanel
 from BluePrintManagementPanel import BluePrintManagementPanel
 from ExcelImport import XLSGridFrame
-from DBOperation import CreateNewOrderSheet,InsertNewOrderRecord,GetAllOrderList,GetOrderByOrderID,UpdateOrderStateInDB,\
+from DBOperation import CreateNewOrderSheet,InsertNewOrderRecord,GetAllOrderList,GetOrderByOrderID,UpdateSubOrderStateInDB,\
     GetPropertySchedulePageRowNumber,GetPackageListFromDB,CreatePackageSheetForOrder
 from ProductionScheduleAlgorithm import ProductionScheduleAlgorithm
 from ImportOrderDialog import ImportOrderFromExcelDialog
@@ -326,7 +326,7 @@ class MainPanel(wx.Panel):
         Images.Add(GetExpandedIconBitmap())
         Images.Add(GetCollapsedIconBitmap())
 
-        if self.parent.operatorCharacter in ["技术员","下单员","管理员"]:
+        if self.parent.operatorCharacter in ["技术员","下单员","经理"]:
             item = self._pnl.AddFoldPanel("订单操作面板", collapsed=False,
                                           foldIcons=Images)
             item.SetLabel("订单操作面板")
@@ -344,7 +344,7 @@ class MainPanel(wx.Panel):
                 vbox.Add(self.newOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
             # vbox.Add(self.editOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
                 vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            if self.parent.operatorCharacter in ["下单员","技术员","管理员"]:
+            if self.parent.operatorCharacter in ["下单员","技术员","经理"]:
                 value = "草稿订单"
                 if self.parent.operatorCharacter == "下单员":
                     value = "草稿订单"
@@ -356,12 +356,12 @@ class MainPanel(wx.Panel):
             panel.SetSizer(vbox)
             # self.ReCreateOrderInfoPanel()
             self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
-            if self.parent.operatorCharacter in ["下单员",'技术员']:
+            if self.parent.operatorCharacter in ["下单员",'技术员','经理']:
                 item.Expand()
             else:
                 item.Collapse()
 
-        if self.parent.operatorCharacter in ["技术员","管理员"]:
+        if self.parent.operatorCharacter in ["技术员","经理"]:
             item = self._pnl.AddFoldPanel("基材操作面板", collapsed=False,
                                           foldIcons=Images)
             item.SetLabel("基材操作面板")
@@ -381,7 +381,7 @@ class MainPanel(wx.Panel):
             self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 0, 0)
             item.Collapse()
 
-        if self.parent.operatorCharacter in ["技术员","管理员"]:
+        if self.parent.operatorCharacter in ["技术员","经理"]:
             item = self._pnl.AddFoldPanel("图纸操作面板", collapsed=False,
                                           foldIcons=Images)
             item.SetLabel("图纸操作面板")
@@ -405,7 +405,7 @@ class MainPanel(wx.Panel):
             # else:
             #     item.Collapse()
 
-        if self.parent.operatorCharacter in ["管理员"]:
+        if self.parent.operatorCharacter in ["经理"]:
             item = self._pnl.AddFoldPanel("生产管理面板", collapsed=False,
                                           foldIcons=Images)
             item.SetLabel("生产管理面板")
@@ -832,7 +832,7 @@ class MainPanel(wx.Panel):
                     suborderState += ','
                     suborderState += state
                 self.work_zone_Panel.manufactureManagementPanel.data[9]=suborderState
-                UpdateOrderStateInDB(self.log, 1, self.work_zone_Panel.manufactureManagementPanel.data[0], suborderState)
+                UpdateSubOrderStateInDB(self.log, 1, self.work_zone_Panel.manufactureManagementPanel.data[0], suborderState)
                 self.work_zone_Panel.manufactureManagementPanel.orderGrid.ReCreate()
                 self.ReCreateOrderInfoPanel()
                 dlg = ProductionScheduleDialog(self, self.log, self.work_zone_Panel.manufactureManagementPanel.data[0], suborderNumber)
@@ -983,19 +983,19 @@ class WorkZonePanel(wx.Panel):
         self.SetSizer(hbox)
         self.systemIntroductionPanel = SystemIntroductionPanel(self.notebook)
         self.notebook.AddPage(self.systemIntroductionPanel,"系统介绍")
-        if self.master.operatorCharacter in ["技术员","下单员","管理员","财务人员","采购员"]:
+        if self.master.operatorCharacter in ["技术员","下单员","经理","财务人员","采购员"]:
             if self.master.operatorCharacter == "技术员":
                 self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,character=self.master.operatorCharacter,type="草稿")
             else:
                 self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,character=self.master.operatorCharacter)
             self.notebook.AddPage(self.orderManagementPanel, "订单管理")
-        if self.master.operatorCharacter in ["技术员","管理员"]:
+        if self.master.operatorCharacter in ["技术员","经理"]:
             self.boardManagementPanel = BoardManagementPanel(self.notebook, self, self.log)
             self.notebook.AddPage(self.boardManagementPanel, "基材管理")
-        if self.master.operatorCharacter in ["技术员","管理员"]:
+        if self.master.operatorCharacter in ["技术员","经理"]:
             self.bluePrintManagementPanel = BluePrintManagementPanel(self.notebook, self, self.log)
             self.notebook.AddPage(self.bluePrintManagementPanel, "图纸管理")
-        if self.master.operatorCharacter in ["技术员","管理员"]:
+        if self.master.operatorCharacter in ["技术员","经理"]:
             self.manufactureManagementPanel = ManufactureManagementPanel(self.notebook, self.master, self.log)
             self.notebook.AddPage(self.manufactureManagementPanel, "生产管理")
         # self.orderManagementPanel.ReCreate()

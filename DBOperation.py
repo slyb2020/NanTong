@@ -579,8 +579,29 @@ def UpdateCeilingInDB(log,whichDB,data):
         print("error")
     db.close()
 
+def UpdateDraftOrderStateInDB(log,whichDB,orderID,state):
+    result=0
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return -1
+    cursor = db.cursor()
+    sql = "UPDATE 订单信息 SET `状态`='%s' WHERE `订单编号` = %s" % (state,int(orderID))
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        db.rollback()
+        print("error")
+        result = -1
+    db.close()
+    return result
 
-def UpdateOrderStateInDB(log,whichDB,orderID,subOrderState):
+def UpdateSubOrderStateInDB(log, whichDB, orderID, subOrderState):
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
@@ -591,10 +612,6 @@ def UpdateOrderStateInDB(log,whichDB,orderID,subOrderState):
         return -1, []
     cursor = db.cursor()
     sql = "UPDATE 订单信息 SET `子订单状态`='%s' WHERE `订单编号` = %s" % (subOrderState,int(orderID))
-    # sql = "INSERT INTO 图纸信息(`图纸号`,`面板增量`,`中板增量`,`背板增量`,`剪板505`,`成型405`,`成型409`,`成型406`,`折弯652`," \
-    #       "`热压100`,`热压306`,`冲铣`,`图纸状态`,`创建人`,`中板`,`打包9000`,`图纸大类`,`创建时间`,`备注`)" \
-    #       "VALUES ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"\
-    #       % (data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],data[10],data[11],data[12],data[13],data[14],data[15],data[16],datetime.date.today(),data[17])
     try:
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
