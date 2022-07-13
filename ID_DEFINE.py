@@ -44,15 +44,27 @@ BIDMETHOD = ['离岸价', '到岸价']
 CheckTitleDict = {
     "WALL": ['Procuct \r\nNo.', 'Product \r\nType', 'Product \r\nSurface', 'Product \r\nHeight/Length (mm)',
              'Procuct \r\nNo.Wdith (mm)', 'Procuct \r\nNo.Thickness (mm)', 'Unit', 'Total \r\nQuantity',
+             'Product \r\nDescription'],
+    "CEILING": ['Procuct \r\nNo.', 'Product \r\nType', 'Product \r\nSurface', 'Product \r\nHeight/Length (mm)',
+             'Procuct \r\nNo.Wdith (mm)', 'Procuct \r\nNo.Thickness (mm)', 'Unit', 'Total \r\nQuantity',
              'Product \r\nDescription']
     }
 OtherCheckTitleDict = {
     "WALL": ['Procuct \r\nNo.', 'Product \r\nType', 'Product \r\nSurface', 'Product \r\nHeight/Length (mm)',
              'Procuct \r\nNo.Wdith (mm)', 'Procuct \r\nNo.Thickness (mm)', 'Unit', 'Total \r\nQuantity',
+             'Unit \r\nPrice', 'Total \r\nPrice', 'Product \r\nDescription'],
+    "CEILING": ['Procuct \r\nNo.', 'Product \r\nType', 'Product \r\nSurface', 'Product \r\nHeight/Length (mm)',
+             'Procuct \r\nNo.Wdith (mm)', 'Procuct \r\nNo.Thickness (mm)', 'Unit', 'Total \r\nQuantity',
              'Unit \r\nPrice', 'Total \r\nPrice', 'Product \r\nDescription']
     }
-CheckColWidthDict = {'WALL': [125, 125, 160, 150, 150, 150, 80, 150, 155]}
-OtherCheckColWidthDict = {'WALL': [125, 125, 160, 150, 150, 150, 80, 150, 80, 80, 155]}
+CheckColWidthDict = {
+    'WALL': [125, 125, 160, 150, 150, 150, 80, 150, 155],
+    'CEILING': [125, 125, 160, 150, 150, 150, 80, 150, 155],
+    }
+OtherCheckColWidthDict = {
+    'WALL': [125, 125, 160, 150, 150, 150, 80, 150, 80, 80, 155],
+    'CEILING': [125, 125, 160, 150, 150, 150, 80, 150, 80, 80, 155],
+    }
 WALL = 0
 CEILING = 1
 CONSTRUCTION = 2

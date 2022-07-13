@@ -9,7 +9,8 @@ import wx.lib.agw.pybusyinfo as PBI
 from BluePrintManagementPanel import BluePrintShowPanel
 from DBOperation import GetAllOrderAllInfo, GetAllOrderList, GetOrderDetailRecord, InsertNewOrder, GetStaffInfoWithID, \
     GetDraftOrderDetailByID, UpdateDraftOrderInfoByID, GetTechDrawingDataByID,GetTechCheckStateByID,\
-    UpdateTechCheckStateByID,GetDraftWallInfoByID,UpdateDrafCheckInfoByID,UpdateDraftOrderStateInDB
+    UpdateTechCheckStateByID,GetDraftComponentInfoByID,UpdateDrafCheckInfoByID,UpdateDraftOrderStateInDB,\
+    UpdatePurchchaseCheckStateByID,UpdateFinancingCheckStateByID,UpdateManagerCheckStateByID
 from DateTimeConvert import *
 from ID_DEFINE import *
 from OrderDetailTree import OrderDetailTree
@@ -784,6 +785,7 @@ class DraftOrderPanel(wx.Panel):
             self.techDrawingName2 = dic["客户原始技术图纸名2"]
             self.techDrawingName3 = dic["客户原始技术图纸名3"]
             self.techDrawingName4 = dic["客户原始技术图纸名4"]
+            self.techCheckState = dic['技术审核状态']
             self.techDrawingName = self.techDrawingName.strip("\"")
             if self.techDrawingName2 == None:
                 self.techDrawingName2 = ""
@@ -930,9 +932,9 @@ class DraftOrderPanel(wx.Panel):
                 but = wx.Button(panel,-1,"开始技术审核",size=(-1,35))
                 but.Bind( wx.EVT_BUTTON, self.OnStartTechCheck)
                 rowsizer.Add(but,1)
-                but = wx.Button(panel,-1,"完成技术审核",size=(-1,35))
-                but.Bind( wx.EVT_BUTTON, self.OnFinishTechCheck)
-                rowsizer.Add(but,1)
+                # but = wx.Button(panel,-1,"完成技术审核",size=(-1,35))
+                # but.Bind( wx.EVT_BUTTON, self.OnFinishTechCheck)
+                # rowsizer.Add(but,1)
             elif self.character == "采购员":
                 but = wx.Button(panel,-1,"开始采购审核",size=(-1,35))
                 but.Bind( wx.EVT_BUTTON, self.OnStartPurchaseCheck)
@@ -1121,12 +1123,26 @@ class DraftOrderPanel(wx.Panel):
 
     def OnStartTechCheck(self,event):
         self.master.checkDataTimer.Stop()
-        UpdateTechCheckStateByID(self.log,WHICHDB,self.ID,"I")
+        if self.techCheckState == 'Y':
+            dlg = wx.MessageDialog(self,"此订单已完成技术审核，如果您继续执行审核操作会导致之前的操作全部重置！\r\n请确认是否继续执行审核操作？","信息提示",style=wx.YES_NO)
+            if dlg.ShowModal()==wx.ID_NO:
+                self.master.checkDataTimer.Start(10000)
+                return
+            dlg.Destroy()
+        if self.techCheckState != 'I':
+            UpdateTechCheckStateByID(self.log, WHICHDB, self.ID, "I")
+            UpdatePurchchaseCheckStateByID(self.log,WHICHDB,self.ID,'N')
+            UpdateFinancingCheckStateByID(self.log,WHICHDB,self.ID,'N')
+            UpdateManagerCheckStateByID(self.log,WHICHDB,self.ID,'N')
         # self.techCheckFrame = wx.MessageDialog(self,"测试进行中")
         # self.techCheckFrame.ShowModal()
-        self.techCheckDialog = TechCheckDialog(self, self.log,self.ID,character="技术员")
+        self.techCheckDialog = TechCheckDialog(self, self.log, self.ID, character="技术员")
         self.techCheckDialog.CenterOnScreen()
-        self.techCheckDialog.ShowModal()
+        if self.techCheckDialog.ShowModal()==wx.ID_OK:
+            UpdateTechCheckStateByID(self.log, WHICHDB, self.ID, "Y")
+            self.master.dataList = []
+            self.master.recreateEnable=True
+            self.master.ReCreate()
         # self.techCheckFrame = TechCheckFrame(self, self.log,self.ID,character="技术员")
         # self.techCheckFrame.Show(True)
         # self.techCheckFrame.CenterOnScreen()
@@ -1145,7 +1161,7 @@ class WallPanelOtherCheckGrid(gridlib.Grid):
         self.id = id
         self.character= character
         if self.type == "WALL":
-            data = GetDraftWallInfoByID(self.log,WHICHDB,self.id)
+            data = GetDraftComponentInfoByID(self.log, WHICHDB, self.id)
         self.data = []
         for dic in data:
             temp = []
@@ -1204,8 +1220,8 @@ class WallPanelTechCheckGrid(gridlib.Grid):
         self.log = log
         self.type = type
         self.id = id
-        if self.type == "WALL":
-            data = GetDraftWallInfoByID(self.log,WHICHDB,self.id)
+        if self.type in ["WALL",'CEILING']:
+            data = GetDraftComponentInfoByID(self.log, WHICHDB, self.id,self.type)
         self.data = []
         for dic in data:
             temp = []
@@ -1377,15 +1393,17 @@ class TechCheckDialog(wx.Dialog):
         bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
         btnSave = wx.Button(self, -1, "保存技术审核数据",size=(200,50))
         btnSave.SetBitmap(bitmap3,wx.LEFT)
-        btn_ok = wx.Button(self, wx.ID_OK, "完成技术审核并退出", size=(200, 50))
-        btn_ok.SetBitmap(bitmap1, wx.LEFT)
-        btn_cancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
-        btn_cancel.SetBitmap(bitmap2, wx.LEFT)
+        btnSave.Bind(wx.EVT_BUTTON,self.OnSaveBTN)
+        btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成技术审核并退出", size=(200, 50))
+        btnSaveAndExit.Bind(wx.EVT_BUTTON,self.OnSaveExitBTN)
+        btnSaveAndExit.SetBitmap(bitmap1, wx.LEFT)
+        btnCancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
+        btnCancel.SetBitmap(bitmap2, wx.LEFT)
         btnsizer.Add(btnSave, 0)
         btnsizer.Add((40, -1), 0)
-        btnsizer.Add(btn_ok, 0)
+        btnsizer.Add(btnSaveAndExit, 0)
         btnsizer.Add((40, -1), 0)
-        btnsizer.Add(btn_cancel, 0)
+        btnsizer.Add(btnCancel, 0)
         sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
         self.SetSizer(sizer)
         sizer.Fit(self)
@@ -1444,6 +1462,78 @@ class TechCheckDialog(wx.Dialog):
         hbox.Add(self.wallPanelCheckGrid, 1, wx.EXPAND)
         self.wallCheckPanel.SetSizer(hbox)
         self.wallCheckPanel.Layout()
+        hbox = wx.BoxSizer()
+        self.ceilingPanelCheckGrid = WallPanelTechCheckGrid(self.ceilingCheckPanel, self.log, type="CEILING", id=self.id)
+        hbox.Add(self.ceilingPanelCheckGrid, 1, wx.EXPAND)
+        self.ceilingCheckPanel.SetSizer(hbox)
+        self.ceilingCheckPanel.Layout()
+
+    def OnSaveExitBTN(self,evt):
+        error=self.Save()
+        evt.Skip()
+
+    def OnSaveBTN(self, evt):
+        self.Save()
+        evt.Skip()
+
+    def Save(self):
+        data=[]
+        error=False
+        rowNum = self.wallPanelCheckGrid.table.GetNumberRows()
+        colNum = self.wallPanelCheckGrid.table.GetNumberCols()
+        for i in range(rowNum-1):
+            temp = ["WALL"]
+            for j in range(colNum):
+                temp.append(self.wallPanelCheckGrid.table.GetValue(i,j))
+            data.append(temp)
+        self.wallDataDicList = self.MakeDicListData(data,"WALL")
+        for row,dics in enumerate(self.wallDataDicList):
+            for col,section in enumerate(WallCheckEnableSectionList):
+                if dics[section] == '':
+                    if section!="产品描述":
+                        self.notebook.SetSelection(0)
+                        self.wallPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,200,200))
+                        self.wallPanelCheckGrid.Refresh()
+                        wx.MessageBox("'%s'字段不能为空！"%section,"信息提示")
+                        return True
+                else:
+                    self.wallPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,255,255))
+                    self.wallPanelCheckGrid.Refresh()
+        rowNum = self.ceilingPanelCheckGrid.table.GetNumberRows()
+        colNum = self.ceilingPanelCheckGrid.table.GetNumberCols()
+        print("rowNum,colNum=",rowNum,colNum)
+        data=[]
+        for i in range(rowNum-1):
+            temp = ["CEILING"]
+            for j in range(colNum):
+                temp.append(self.ceilingPanelCheckGrid.table.GetValue(i,j))
+            data.append(temp)
+        print("data=",data)
+        self.ceilingDataDicList = self.MakeDicListData(data,"CEILING")
+        print("ceilingDataDicList=",self.ceilingDataDicList)
+        for row,dics in enumerate(self.ceilingDataDicList):
+            for col,section in enumerate(WallCheckEnableSectionList):
+                if dics[section] == '':
+                    if section!="产品描述":
+                        self.notebook.SetSelection(1)
+                        self.ceilingPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,200,200))
+                        self.ceilingPanelCheckGrid.Refresh()
+                        wx.MessageBox("'%s'字段不能为空！"%section,"信息提示")
+                        return True
+                else:
+                    self.ceilingPanelCheckGrid.SetCellBackgroundColour(row,col,wx.Colour(255,255,255))
+                    self.ceilingPanelCheckGrid.Refresh()
+        self.wallDataDicList = self.wallDataDicList+self.ceilingDataDicList
+        UpdateDrafCheckInfoByID(self.log,WHICHDB,self.id,self.wallDataDicList)
+        return False
+
+    def MakeDicListData(self,data,type):
+        dicList=[]
+        if type in ["WALL",'CEILING']:
+            sectionList=copy.deepcopy(WallCheckEnableSectionList)
+            sectionList.insert(0,"类别")
+            dicList = [dict(zip(sectionList, row)) for row in data]
+        return dicList
 
 # class TechCheckFrame(wx.Frame):
 #     def __init__(self, parent, log,id,character):
@@ -1563,19 +1653,34 @@ class WallPanelCheckDataTable(gridlib.GridTableBase):
 
         self.colLabels = CheckTitleDict[self.type]
 
-        self.dataTypes = [
-                          gridlib.GRID_VALUE_CHOICE + ':TNF-2SF,TNF-2SA,TNF-2SG',
-                          gridlib.GRID_VALUE_CHOICE + ':B15 Lining,Wet,B15 Partition',
-                          gridlib.GRID_VALUE_CHOICE + ':PVC/G,PVC/PVC,S.S(304)/G,S.S(304)/S.S(304)',
-                          gridlib.GRID_VALUE_NUMBER,
-                          gridlib.GRID_VALUE_NUMBER,
-                          gridlib.GRID_VALUE_CHOICE + ':25,50,100',
-                          gridlib.GRID_VALUE_CHOICE + ':m2,pcs',
-                          gridlib.GRID_VALUE_FLOAT + ':6,2',
-                          gridlib.GRID_VALUE_STRING,
-                          gridlib.GRID_VALUE_FLOAT + ':6,2',
-                          gridlib.GRID_VALUE_FLOAT + ':6,2',
-                          ]
+        if self.type == 'WALL':
+            self.dataTypes = [
+                              gridlib.GRID_VALUE_CHOICE + ':TNF-2SF,TNF-2SA,TNF-2SM,Addition',
+                              gridlib.GRID_VALUE_CHOICE + ':B15 Lining,Wet,B15 Partition',
+                              gridlib.GRID_VALUE_CHOICE + ':PVC/G,PVC/PVC,S.S(304)/G,S.S(304)/S.S(304),Painted/G,Painted/Painted',
+                              gridlib.GRID_VALUE_CHOICE + ':≤2500',
+                              gridlib.GRID_VALUE_CHOICE + ':600',
+                              gridlib.GRID_VALUE_CHOICE + ':25,50,100',
+                              gridlib.GRID_VALUE_CHOICE + ':m2',
+                              gridlib.GRID_VALUE_FLOAT + ':6,2',
+                              gridlib.GRID_VALUE_STRING,
+                              gridlib.GRID_VALUE_FLOAT + ':6,2',
+                              gridlib.GRID_VALUE_FLOAT + ':6,2',
+                              ]
+        elif self.type == 'CEILING':
+            self.dataTypes = [
+                              gridlib.GRID_VALUE_CHOICE + ':TNF-C46,TNF-C55,TNF-C64,TNF-C65,TNF-C70,TNF-C72,Addition',
+                              gridlib.GRID_VALUE_CHOICE + ':B15',
+                              gridlib.GRID_VALUE_CHOICE + ':PVC,Painted,S.S(304),PVC/G,S.S(304)/G,Painted/G',
+                              gridlib.GRID_VALUE_CHOICE + ':≤3000,600',
+                              gridlib.GRID_VALUE_CHOICE + ':600,300',
+                              gridlib.GRID_VALUE_CHOICE + ':25,50,100',
+                              gridlib.GRID_VALUE_CHOICE + ':m2',
+                              gridlib.GRID_VALUE_FLOAT + ':6,2',
+                              gridlib.GRID_VALUE_STRING,
+                              gridlib.GRID_VALUE_FLOAT + ':6,2',
+                              gridlib.GRID_VALUE_FLOAT + ':6,2',
+                              ]
         self.data = data
         # colWidthList = CheckColWidthDict[type]
         # for i, width in enumerate(colWidthList):

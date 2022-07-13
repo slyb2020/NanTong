@@ -1831,6 +1831,75 @@ def UpdateTechCheckStateByID(log,whichDB,id,state):
     db.close()
     return result
 
+def UpdatePurchchaseCheckStateByID(log,whichDB,id,state):
+    id = int(id)
+    result = 1
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = "UPDATE `订单信息` SET `采购审核状态`= '%s' where `Index`= %s " % (state,id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("修改技术审核状态出错！")
+        db.rollback()
+        result = -1
+    db.close()
+    return result
+
+def UpdateFinancingCheckStateByID(log,whichDB,id,state):
+    id = int(id)
+    result = 1
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = "UPDATE `订单信息` SET `财务审核状态`= '%s' where `Index`= %s " % (state,id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("修改技术审核状态出错！")
+        db.rollback()
+        result = -1
+    db.close()
+    return result
+
+def UpdateManagerCheckStateByID(log,whichDB,id,state):
+    id = int(id)
+    result = 1
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = "UPDATE `订单信息` SET `经理审核状态`= '%s' where `Index`= %s " % (state,id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("修改技术审核状态出错！")
+        db.rollback()
+        result = -1
+    db.close()
+    return result
+
 def UpdateDrafCheckInfoByID(log,whichDB,id,dicList):
     id = int(id)
     try:
@@ -1855,14 +1924,14 @@ def UpdateDrafCheckInfoByID(log,whichDB,id,dicList):
             `产品厚度` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
             `单位` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
             `数量` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
-            `单价` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
-            `总价` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
-            `产品描述` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+            `单价` VARCHAR(50) NULL DEFAULT NULL COLLATE 'utf8_general_ci',
+            `总价` VARCHAR(50) NULL DEFAULT NULL COLLATE 'utf8_general_ci',
+            `产品描述` VARCHAR(50) NULL DEFAULT NULL COLLATE 'utf8_general_ci',
             PRIMARY KEY (`Index`) USING BTREE
             )
             COLLATE='utf8_unicode_ci'
             ENGINE=InnoDB
-            AUTO_INCREMENT=2
+            AUTO_INCREMENT=1
             ;
         """%(id)
     try:
@@ -1880,9 +1949,9 @@ def UpdateDrafCheckInfoByID(log,whichDB,id,dicList):
         except:
             print("error new2")
             db.rollback()
-    cursor.close
+    db.close()
 
-def GetDraftWallInfoByID(log,whichDB,id):
+def GetDraftComponentInfoByID(log, whichDB, id,type):
     id = int(id)
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
@@ -1911,9 +1980,9 @@ def GetDraftWallInfoByID(log,whichDB,id):
                 `产品厚度` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
                 `单位` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
                 `数量` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
-                `单价` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
-                `总价` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
-                `产品描述` VARCHAR(50) NOT NULL COLLATE 'utf8_general_ci',
+                `单价` VARCHAR(50) NULL DEFAULT NULL COLLATE 'utf8_general_ci',
+                `总价` VARCHAR(50) NULL DEFAULT NULL COLLATE 'utf8_general_ci',
+                `产品描述` VARCHAR(50) NULL DEFAULT NULL COLLATE 'utf8_general_ci',
                 PRIMARY KEY (`Index`) USING BTREE
                 )
                 COLLATE='utf8_unicode_ci'
@@ -1927,7 +1996,7 @@ def GetDraftWallInfoByID(log,whichDB,id):
         except:
             print("error new3")
             db.rollback()
-    sql="select * from `%s` where `类别`='%s'"%(id,"WALL")
+    sql="select * from `%s` where `类别`='%s'"%(id,type)
     cursor.execute(sql)
     result = cursor.fetchall()
     column = [index[0] for index in cursor.description]
