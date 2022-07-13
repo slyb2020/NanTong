@@ -53,6 +53,7 @@ from xls2xlsx import xls2xlsx
 import wx.lib.agw.gradientbutton as GB
 from MakePdfReport import *
 from OrderManagementPanel import OrderManagementPanel,CreateNewOrderDialog
+from MeterialPriceManagementPanel import InputTodayPriceDialog,MeterialPriceManagementPanel
 
 def switchRGBtoBGR(colour):
     return wx.Colour(colour.Blue(), colour.Green(), colour.Red())
@@ -326,7 +327,7 @@ class MainPanel(wx.Panel):
         Images.Add(GetExpandedIconBitmap())
         Images.Add(GetCollapsedIconBitmap())
 
-        if self.parent.operatorCharacter in ["技术员","下单员","经理"]:
+        if self.parent.operatorCharacter in ["设计员","下单员","经理"]:
             item = self._pnl.AddFoldPanel("订单操作面板", collapsed=False,
                                           foldIcons=Images)
             item.SetLabel("订单操作面板")
@@ -344,7 +345,7 @@ class MainPanel(wx.Panel):
                 vbox.Add(self.newOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
             # vbox.Add(self.editOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
                 vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            if self.parent.operatorCharacter in ["下单员","技术员","经理"]:
+            if self.parent.operatorCharacter in ["下单员","设计员","经理"]:
                 value = "草稿订单"
                 if self.parent.operatorCharacter == "下单员":
                     value = "草稿订单"
@@ -356,82 +357,108 @@ class MainPanel(wx.Panel):
             panel.SetSizer(vbox)
             # self.ReCreateOrderInfoPanel()
             self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
-            if self.parent.operatorCharacter in ["下单员",'技术员','经理']:
+            if self.parent.operatorCharacter in ["下单员",'设计员','经理']:
                 item.Expand()
             else:
                 item.Collapse()
 
-        if self.parent.operatorCharacter in ["技术员","经理"]:
-            item = self._pnl.AddFoldPanel("基材操作面板", collapsed=False,
+        if self.parent.operatorCharacter in ["采购员"]:
+            item = self._pnl.AddFoldPanel("原材料价格操作面板", collapsed=False,
                                           foldIcons=Images)
-            item.SetLabel("基材操作面板")
-            panel = wx.Panel(item, -1, size=(300, 300))
-            bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
-                               wx.BITMAP_TYPE_PNG)
-            self.newBoardBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  新建基材", size=(100, 50))
-            self.newBoardBTN.SetForegroundColour(wx.BLACK)
-            self.editBoardBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  基材管理", size=(100, 50))
-            self.editBoardBTN.SetForegroundColour(wx.BLACK)
-            static = wx.StaticLine(panel, -1)
-            vbox = wx.BoxSizer(wx.VERTICAL)
-            vbox.Add(self.newBoardBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            vbox.Add(self.editBoardBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            panel.SetSizer(vbox)
-            self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 0, 0)
-            item.Collapse()
-
-        if self.parent.operatorCharacter in ["技术员","经理"]:
-            item = self._pnl.AddFoldPanel("图纸操作面板", collapsed=False,
-                                          foldIcons=Images)
-            item.SetLabel("图纸操作面板")
-            panel = wx.Panel(item, -1, size=(300, 300))
-            bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
-                               wx.BITMAP_TYPE_PNG)
-            self.newSchematicBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  新建图纸", size=(100, 50))
-            self.newSchematicBTN.SetForegroundColour(wx.BLACK)
-            self.editSchematicBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  图纸管理", size=(100, 50))
-            self.editSchematicBTN.SetForegroundColour(wx.BLACK)
-            static = wx.StaticLine(panel, -1)
-            vbox = wx.BoxSizer(wx.VERTICAL)
-            vbox.Add(self.newSchematicBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            vbox.Add(self.editSchematicBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            panel.SetSizer(vbox)
-            self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
-            item.Collapse()
-            # if self.parent.operatorCharacter == "管理员":
-            #     item.Expand()
-            # else:
-            #     item.Collapse()
-
-        if self.parent.operatorCharacter in ["经理"]:
-            item = self._pnl.AddFoldPanel("生产管理面板", collapsed=False,
-                                          foldIcons=Images)
-            item.SetLabel("生产管理面板")
+            item.SetLabel("原材料价格操作面板")
             panel = wx.Panel(item, -1, size=(300, 700))
-            bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
-                               wx.BITMAP_TYPE_PNG)
-            self.importOderDataBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  导入订单数据", size=(100, 50))
-            self.importOderDataBTN.Bind(wx.EVT_BUTTON, self.OnImportOrderDataBTN)
-            self.importOderDataBTN.SetForegroundColour(wx.BLACK)
-            # self.editOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  批量排产", size=(100, 50))
-            # self.editOrderBTN.SetForegroundColour(wx.BLACK)
-            static = wx.StaticLine(panel, -1)
             vbox = wx.BoxSizer(wx.VERTICAL)
-            vbox.Add(self.importOderDataBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+            if self.parent.operatorCharacter == "采购员":
+                bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
+                                   wx.BITMAP_TYPE_PNG)
+                self.inputTodayPriceBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  录入今日原材料价格", size=(100, 50))
+                self.inputTodayPriceBTN.Bind(wx.EVT_BUTTON,self.OnInputTodayPriceBTN)
+                self.inputTodayPriceBTN.SetForegroundColour(wx.BLACK)
+                # self.editOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  批量排产", size=(100, 50))
+                # self.editOrderBTN.SetForegroundColour(wx.BLACK)
+                static = wx.StaticLine(panel, -1)
+                vbox.Add(self.inputTodayPriceBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
             # vbox.Add(self.editOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
-            self.orderInfoPanel=wx.Panel(panel,size=(-1,500))
-            vbox.Add(self.orderInfoPanel,1,wx.EXPAND)
+                vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
             panel.SetSizer(vbox)
             # self.ReCreateOrderInfoPanel()
             self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
-            item.Collapse()
-            # if self.parent.operatorCharacter == "下单员":
-            #     item.Expand()
-            # else:
-            #     item.Collapse()
+            if self.parent.operatorCharacter in ['采购员']:
+                item.Expand()
+            else:
+                item.Collapse()
+
+        # if self.parent.operatorCharacter in ["技术员","经理"]:
+        #     item = self._pnl.AddFoldPanel("基材操作面板", collapsed=False,
+        #                                   foldIcons=Images)
+        #     item.SetLabel("基材操作面板")
+        #     panel = wx.Panel(item, -1, size=(300, 300))
+        #     bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
+        #                        wx.BITMAP_TYPE_PNG)
+        #     self.newBoardBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  新建基材", size=(100, 50))
+        #     self.newBoardBTN.SetForegroundColour(wx.BLACK)
+        #     self.editBoardBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  基材管理", size=(100, 50))
+        #     self.editBoardBTN.SetForegroundColour(wx.BLACK)
+        #     static = wx.StaticLine(panel, -1)
+        #     vbox = wx.BoxSizer(wx.VERTICAL)
+        #     vbox.Add(self.newBoardBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     vbox.Add(self.editBoardBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     panel.SetSizer(vbox)
+        #     self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 0, 0)
+        #     item.Collapse()
+        #
+        # if self.parent.operatorCharacter in ["技术员","经理"]:
+        #     item = self._pnl.AddFoldPanel("图纸操作面板", collapsed=False,
+        #                                   foldIcons=Images)
+        #     item.SetLabel("图纸操作面板")
+        #     panel = wx.Panel(item, -1, size=(300, 300))
+        #     bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
+        #                        wx.BITMAP_TYPE_PNG)
+        #     self.newSchematicBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  新建图纸", size=(100, 50))
+        #     self.newSchematicBTN.SetForegroundColour(wx.BLACK)
+        #     self.editSchematicBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  图纸管理", size=(100, 50))
+        #     self.editSchematicBTN.SetForegroundColour(wx.BLACK)
+        #     static = wx.StaticLine(panel, -1)
+        #     vbox = wx.BoxSizer(wx.VERTICAL)
+        #     vbox.Add(self.newSchematicBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     vbox.Add(self.editSchematicBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     panel.SetSizer(vbox)
+        #     self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
+        #     item.Collapse()
+        #     # if self.parent.operatorCharacter == "管理员":
+        #     #     item.Expand()
+        #     # else:
+        #     #     item.Collapse()
+        #
+        # if self.parent.operatorCharacter in ["技术员","经理"]:
+        #     item = self._pnl.AddFoldPanel("生产管理面板", collapsed=False,
+        #                                   foldIcons=Images)
+        #     item.SetLabel("生产管理面板")
+        #     panel = wx.Panel(item, -1, size=(300, 700))
+        #     bitmap = wx.Bitmap(bitmapDir+"/aquabutton.png",
+        #                        wx.BITMAP_TYPE_PNG)
+        #     self.importOderDataBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  导入订单数据", size=(100, 50))
+        #     self.importOderDataBTN.Bind(wx.EVT_BUTTON, self.OnImportOrderDataBTN)
+        #     self.importOderDataBTN.SetForegroundColour(wx.BLACK)
+        #     # self.editOrderBTN = AB.AquaButton(panel, wx.ID_ANY, bitmap, "  批量排产", size=(100, 50))
+        #     # self.editOrderBTN.SetForegroundColour(wx.BLACK)
+        #     static = wx.StaticLine(panel, -1)
+        #     vbox = wx.BoxSizer(wx.VERTICAL)
+        #     vbox.Add(self.importOderDataBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     # vbox.Add(self.editOrderBTN, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     vbox.Add(static, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        #     self.orderInfoPanel=wx.Panel(panel,size=(-1,500))
+        #     vbox.Add(self.orderInfoPanel,1,wx.EXPAND)
+        #     panel.SetSizer(vbox)
+        #     # self.ReCreateOrderInfoPanel()
+        #     self._pnl.AddFoldPanelWindow(item, panel, fpb.FPB_ALIGN_WIDTH, 5, 0)
+        #     item.Collapse()
+        #     # if self.parent.operatorCharacter == "下单员":
+        #     #     item.Expand()
+        #     # else:
+        #     #     item.Collapse()
 
         # if self.parent.operatorCharacter in ["技术员","管理员"]:
         #     cs = fpb.CaptionBarStyle()
@@ -486,6 +513,14 @@ class MainPanel(wx.Panel):
         #     else:
         #         item.Collapse()
         self._leftWindow1.Thaw()
+
+    def OnInputTodayPriceBTN(self,event):
+        dlg = InputTodayPriceDialog(self,self.log)
+        dlg.CenterOnScreen()
+        dlg.ShowModal()
+        dlg.Destroy()
+        self.work_zone_Panel.orderManagementPanel.ReCreate()
+
     def OnOrderTypeCOMBOChanged(self,event):
         type = self.orderTypeCOMBO.GetValue()[:2]
         self.work_zone_Panel.orderManagementPanel.type = type
@@ -943,7 +978,7 @@ class MainPanel(wx.Panel):
                 self.work_zone_Panel.manufactureManagementPanel.ReCreate()
             elif pageName=="基材管理":
                 self.work_zone_Panel.boardManagementPanel.ReCreate()
-            Title = ["","订单操作面板","基材操作面板","图纸操作面板","生产管理面板"]
+            Title = ["","订单操作面板","原材料价格操作面板","基材操作面板","图纸操作面板","生产管理面板"]
             for i in range(0, self._pnl.GetCount()):
                 item = self._pnl.GetFoldPanel(i)
                 self._pnl.Collapse(item)
@@ -983,21 +1018,24 @@ class WorkZonePanel(wx.Panel):
         self.SetSizer(hbox)
         self.systemIntroductionPanel = SystemIntroductionPanel(self.notebook)
         self.notebook.AddPage(self.systemIntroductionPanel,"系统介绍")
-        if self.master.operatorCharacter in ["技术员","下单员","经理","财务人员","采购员"]:
-            if self.master.operatorCharacter == "技术员":
+        if self.master.operatorCharacter in ["设计员","技术员","下单员","经理","财务人员","采购员"]:
+            if self.master.operatorCharacter == "设计员":
                 self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,character=self.master.operatorCharacter,type="草稿")
             else:
                 self.orderManagementPanel = OrderManagementPanel(self.notebook, self.master, self.log,character=self.master.operatorCharacter)
             self.notebook.AddPage(self.orderManagementPanel, "订单管理")
-        if self.master.operatorCharacter in ["技术员","经理"]:
-            self.boardManagementPanel = BoardManagementPanel(self.notebook, self, self.log)
-            self.notebook.AddPage(self.boardManagementPanel, "基材管理")
-        if self.master.operatorCharacter in ["技术员","经理"]:
-            self.bluePrintManagementPanel = BluePrintManagementPanel(self.notebook, self, self.log)
-            self.notebook.AddPage(self.bluePrintManagementPanel, "图纸管理")
-        if self.master.operatorCharacter in ["技术员","经理"]:
-            self.manufactureManagementPanel = ManufactureManagementPanel(self.notebook, self.master, self.log)
-            self.notebook.AddPage(self.manufactureManagementPanel, "生产管理")
+        if self.master.operatorCharacter in ["采购员","经理"]:
+            self.meterialPriceManagementPanel = MeterialPriceManagementPanel(self.notebook, self.log)
+            self.notebook.AddPage(self.meterialPriceManagementPanel, "原材料价格管理")
+        # if self.master.operatorCharacter in ["技术员","经理"]:
+        #     self.boardManagementPanel = BoardManagementPanel(self.notebook, self, self.log)
+        #     self.notebook.AddPage(self.boardManagementPanel, "基材管理")
+        # if self.master.operatorCharacter in ["技术员","经理"]:
+        #     self.bluePrintManagementPanel = BluePrintManagementPanel(self.notebook, self, self.log)
+        #     self.notebook.AddPage(self.bluePrintManagementPanel, "图纸管理")
+        # if self.master.operatorCharacter in ["技术员","经理"]:
+        #     self.manufactureManagementPanel = ManufactureManagementPanel(self.notebook, self.master, self.log)
+        #     self.notebook.AddPage(self.manufactureManagementPanel, "生产管理")
         # self.orderManagementPanel.ReCreate()
         self.notebook.SetSelection(1)
         # if self.master.operatorCharacter == '下单员':

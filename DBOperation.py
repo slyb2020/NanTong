@@ -90,7 +90,7 @@ def GetAllOrderList(log, whichDB):
             log.WriteText("3无法连接%s!" % dbName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
-    sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态`,`子订单编号`,`子订单状态`,`技术审核状态`,`财务审核状态`,`采购审核状态`,`技术审核员ID`,`技术审核时间`,`技术审核意见` from `订单信息` """
+    sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态`,`子订单编号`,`子订单状态`,`设计审核状态`,`财务审核状态`,`采购审核状态`,`设计审核员ID`,`设计审核时间`,`设计审核意见` from `订单信息` """
     cursor.execute(sql)
     temp = cursor.fetchall()  # 获得压条信息
     db.close()
@@ -107,13 +107,13 @@ def GetAllOrderAllInfo(log, whichDB,type):
         return -1, []
     cursor = db.cursor()
     if type == "草稿":
-        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`投标时间`,`下单时间`,`下单员ID`,`状态`,`技术审核状态`,`采购审核状态`,`财务审核状态`,`经理审核状态` from `订单信息` where `状态`='%s' """%type
+        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`投标时间`,`下单时间`,`下单员ID`,`状态`,`设计审核状态`,`采购审核状态`,`财务审核状态`,`经理审核状态` from `订单信息` where `状态`='%s' """%type
     elif type == "在产":
         sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态` from `订单信息` where `状态`='%s' """%type
     elif type == "完工":
         sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态` from `订单信息` where `状态`='%s' """%type
     elif type == "废弃":
-        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`投标时间`,`下单时间`,`下单员ID`,`状态`,`技术审核状态`,`采购审核状态`,`财务审核状态`,`经理审核状态` from `订单信息` where `状态`='%s' """%type
+        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`投标时间`,`下单时间`,`下单员ID`,`状态`,`设计审核状态`,`采购审核状态`,`财务审核状态`,`经理审核状态` from `订单信息` where `状态`='%s' """%type
     cursor.execute(sql)
     temp = cursor.fetchall()  # 获得压条信息
     db.close()
@@ -1820,12 +1820,12 @@ def UpdateTechCheckStateByID(log,whichDB,id,state):
             log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
-    sql = "UPDATE `订单信息` SET `技术审核状态`= '%s' where `Index`= %s " % (state,id)
+    sql = "UPDATE `订单信息` SET `设计审核状态`= '%s' where `Index`= %s " % (state,id)
     try:
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
-        print("修改技术审核状态出错！")
+        print("修改设计审核状态出错！")
         db.rollback()
         result = -1
     db.close()
@@ -1848,7 +1848,7 @@ def UpdatePurchchaseCheckStateByID(log,whichDB,id,state):
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
-        print("修改技术审核状态出错！")
+        print("修改设计审核状态出错！")
         db.rollback()
         result = -1
     db.close()
@@ -1871,7 +1871,7 @@ def UpdateFinancingCheckStateByID(log,whichDB,id,state):
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
-        print("修改技术审核状态出错！")
+        print("修改设计审核状态出错！")
         db.rollback()
         result = -1
     db.close()
@@ -1894,7 +1894,7 @@ def UpdateManagerCheckStateByID(log,whichDB,id,state):
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
-        print("修改技术审核状态出错！")
+        print("修改设计审核状态出错！")
         db.rollback()
         result = -1
     db.close()
@@ -1950,6 +1950,65 @@ def UpdateDrafCheckInfoByID(log,whichDB,id,dicList):
             print("error new2")
             db.rollback()
     db.close()
+
+def SaveMeterialTodayPriceInDB(log,whichDB,dicList):
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return []
+    cursor = db.cursor()
+    sql ="SELECT `市价更新日期` FROM `原材料成本核算表` ORDER BY `Index` DESC LIMIT 1"
+    cursor.execute(sql)
+    Date = cursor.fetchone()[0]
+    if Date == str(datetime.date.today()):
+        sql = """DELETE from `原材料成本核算表` where `市价更新日期`='%s' """ % (Date)
+        try:
+            cursor.execute(sql)
+            db.commit()  # 必须有，没有的话插入语句不会执行
+        except:
+            print("error new2")
+            db.rollback()
+    print("dicList=",dicList)
+    id = "原材料成本核算表"
+    for dic in dicList:
+        dic["市价更新日期"]=str(datetime.date.today())
+        ls = [(k,dic[k]) for k in dic if dic[k] is not None]
+        sql = 'insert `%s` (' %id + ','.join(i[0] for i in ls)+') values ('+','.join('%r' %i[1] for i in ls)+')'
+        print("sql=",sql)
+        try:
+            cursor.execute(sql)
+            db.commit()  # 必须有，没有的话插入语句不会执行
+        except:
+            print("error new2")
+            db.rollback()
+    db.close()
+
+
+
+def GetMeterialPrice(log,whichDB):
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return []
+    cursor = db.cursor()
+    sql ="SELECT `市价更新日期` FROM `原材料成本核算表` ORDER BY `Index` DESC LIMIT 1"
+    cursor.execute(sql)
+    Date = cursor.fetchone()[0]
+    sql="select * from `原材料成本核算表` where `市价更新日期`='%s'"%(Date)
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    column = [index[0] for index in cursor.description]
+    data_dict = [dict(zip(column,row)) for row in result]
+    db.close()
+    return data_dict
 
 def GetDraftComponentInfoByID(log, whichDB, id,type):
     id = int(id)
@@ -2015,7 +2074,7 @@ def GetTechCheckStateByID(log,whichDB,id):
             log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
-    sql = "select `技术审核状态`  from `订单信息` where `Index`=%s" % id
+    sql = "select `设计审核状态`  from `订单信息` where `Index`=%s" % id
     cursor.execute(sql)
     record=cursor.fetchone()
     db.close()

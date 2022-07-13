@@ -38,6 +38,10 @@ WallCheckEnableSectionDic = {
     "技术员": ['产品名称', '产品型号', '产品表面材料', '产品长度', '产品宽度', '产品厚度', '单位', '数量', '产品描述'],
     "采购员": ['产品名称', '产品型号', '产品表面材料', '产品长度', '产品宽度', '产品厚度', '单位', '数量', '单价', '总价', '产品描述'],
 }
+
+MeterialCharacterList = ['材料名', '规格', '供应商', '价格', '单位', '备注']
+MeterialCharacterWidthList = [160, 160, 160, 160, 80, 80]
+
 BIDMODE = ['wxPython Rules', 'wxPython Rocks', 'wxPython Is The Best']
 BIDMETHOD = ['离岸价', '到岸价']
 

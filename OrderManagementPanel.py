@@ -312,6 +312,7 @@ class OrderGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
 class OrderManagementPanel(wx.Panel):
     def __init__(self, parent, master, log,character,type="草稿"):
         wx.Panel.__init__(self, parent, -1)
+        self.parent = parent
         self.master = master
         self.log = log
         self.type = type
@@ -323,10 +324,11 @@ class OrderManagementPanel(wx.Panel):
         self.Bind(wx.EVT_TIMER, self.OnCheckDataTimer)
 
     def OnCheckDataTimer(self,event):
-        _, dataList = GetAllOrderAllInfo(self.log, WHICHDB, self.type)
-        if self.dataList != dataList:
-            self.dataList = dataList
-            self.recreateEnable = True
+        if self.IsShown():
+            _, dataList = GetAllOrderAllInfo(self.log, WHICHDB, self.type)
+            if self.dataList != dataList:
+                self.dataList = dataList
+                self.recreateEnable = True
 
     def ReCreate(self):
         if self.recreateEnable:
@@ -337,8 +339,8 @@ class OrderManagementPanel(wx.Panel):
             self.showRange=[]
             # if self.parent.master.operatorCharacter=="下单员":
             if self.type == "草稿":
-                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术审核","采购审核","财务审核","经理审核"]
-                self.colWidthList =      [60,    60,          80,      80,    80,      85,       85,      60,     60,      60,       60,       60,       60]
+                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","设计部审核","采购部审核","财务部审核","经理审核"]
+                self.colWidthList =      [60,    60,          80,      80,    80,      85,       85,      60,     60,      70,       70,       70,       70]
             elif self.type =="在产":
                 self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
                 self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
@@ -346,8 +348,8 @@ class OrderManagementPanel(wx.Panel):
                 self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
                 self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
             elif self.type =="废弃":
-                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术审核","采购审核","财务审核","经理审核"]
-                self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      60,       60,       60,       60]
+                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","设计部审核","采购审核","财务审核","经理审核"]
+                self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      70,       70,       70,       70]
             self.orderDetailData = []
             if self.dataList==[]:
                 _, self.dataList = GetAllOrderAllInfo(self.log, WHICHDB,self.type)
@@ -495,7 +497,7 @@ class OrderManagementPanel(wx.Panel):
     def ReCreateTechCheckPanel(self):
         self.orderTechCheckPanel.DestroyChildren()
         vbox = wx.BoxSizer(wx.VERTICAL)
-        self.techCheckInfoPanel = DraftOrderPanel(self.orderTechCheckPanel, self, self.log, size=(300, 600), mode="USE", ID = self.data[1],character="技术员")
+        self.techCheckInfoPanel = DraftOrderPanel(self.orderTechCheckPanel, self, self.log, size=(300, 600), mode="USE", ID = self.data[1],character="设计员")
         vbox.Add(self.techCheckInfoPanel,1,wx.EXPAND)
         self.orderTechCheckPanel.SetSizer(vbox)
         self.orderTechCheckPanel.Layout()
@@ -533,7 +535,7 @@ class OrderManagementPanel(wx.Panel):
             self.ReCreateRightPanel()
             if self.character=="下单员":
                 self.ReCreateOrderEditPanel()
-            if self.character in ["技术员"]:
+            if self.character in ["设计员"]:
                 self.ReCreateTechCheckPanel()
             if self.character in ["采购员"]:
                 self.ReCreatePurchaseCheckPanel()
@@ -634,15 +636,17 @@ class OrderManagementPanel(wx.Panel):
                 self.orderEditPanel = wx.Panel(self.notebook,size=(260,-1))
                 self.notebook.AddPage(self.orderEditPanel, "订单部审核")
                 self.ReCreateOrderEditPanel()
-            if self.master.operatorCharacter=="技术员":
+            if self.master.operatorCharacter=="设计员":
                 self.orderTechCheckPanel = wx.Panel(self.notebook,size=(260,-1))
-                self.notebook.AddPage(self.orderTechCheckPanel, "技术部审核")
-            # self.orderPurchaseCheckPanel = wx.Panel(self.notebook,size=(260,-1))
-            # self.notebook.AddPage(self.orderPurchaseCheckPanel, "采购部审核")
+                self.notebook.AddPage(self.orderTechCheckPanel, "设计部审核")
+            if self.master.operatorCharacter=='采购员':
+                self.orderPurchaseCheckPanel = wx.Panel(self.notebook,size=(260,-1))
+                self.notebook.AddPage(self.orderPurchaseCheckPanel, "采购部审核")
             # self.orderFinancialCheckPanel = wx.Panel(self.notebook,size=(260,-1))
             # self.notebook.AddPage(self.orderFinancialCheckPanel, "财务部审核")
-            # self.orderManagerCheckPanel = wx.Panel(self.notebook,size=(260,-1))
-            # self.notebook.AddPage(self.orderManagerCheckPanel, "经理审核")
+            if self.master.operatorCharacter=='经理':
+                self.orderManagerCheckPanel = wx.Panel(self.notebook,size=(260,-1))
+                self.notebook.AddPage(self.orderManagerCheckPanel, "经理审核")
         self.rightPanel.Thaw()
 
 
@@ -737,7 +741,7 @@ class OrderManagementPanel(wx.Panel):
         self.ReSearch()
 
 class DraftOrderPanel(wx.Panel):
-    def __init__( self, parent, master,log ,size,mode="NEW",ID=None,character="技术员"):
+    def __init__( self, parent, master,log ,size,mode="NEW",ID=None,character="设计员"):
         wx.Panel.__init__(self, parent, wx.ID_ANY,size=size)
         self.master = master
         self.log = log
@@ -759,6 +763,9 @@ class DraftOrderPanel(wx.Panel):
         self.bidMode = BIDMODE[0]
         self.bidMethod = BIDMETHOD[0]
         self.techDrawingName = ""
+        self.techDrawingName2 = ""
+        self.techDrawingName3 = ""
+        self.techDrawingName4 = ""
         self.secureProtocolName = ""
         self.bidDocName = ""
         self.techRequireDocName = ""
@@ -785,7 +792,7 @@ class DraftOrderPanel(wx.Panel):
             self.techDrawingName2 = dic["客户原始技术图纸名2"]
             self.techDrawingName3 = dic["客户原始技术图纸名3"]
             self.techDrawingName4 = dic["客户原始技术图纸名4"]
-            self.techCheckState = dic['技术审核状态']
+            self.techCheckState = dic['设计审核状态']
             self.techDrawingName = self.techDrawingName.strip("\"")
             if self.techDrawingName2 == None:
                 self.techDrawingName2 = ""
@@ -928,25 +935,25 @@ class DraftOrderPanel(wx.Panel):
             pg.SetPropertyEditor("4.产品清单或图纸文件", "SampleMultiButtonEditor")
             topsizer.Add(pg, 1, wx.EXPAND)
             rowsizer = wx.BoxSizer(wx.HORIZONTAL)
-            if self.character == "技术员":
-                but = wx.Button(panel,-1,"开始技术审核",size=(-1,35))
+            if self.character == "设计员":
+                but = wx.Button(panel,-1,"开始设计部审核",size=(-1,35))
                 but.Bind( wx.EVT_BUTTON, self.OnStartTechCheck)
                 rowsizer.Add(but,1)
-                # but = wx.Button(panel,-1,"完成技术审核",size=(-1,35))
+                # but = wx.Button(panel,-1,"完成设计审核",size=(-1,35))
                 # but.Bind( wx.EVT_BUTTON, self.OnFinishTechCheck)
                 # rowsizer.Add(but,1)
             elif self.character == "采购员":
-                but = wx.Button(panel,-1,"开始采购审核",size=(-1,35))
+                but = wx.Button(panel,-1,"开始采购部审核",size=(-1,35))
                 but.Bind( wx.EVT_BUTTON, self.OnStartPurchaseCheck)
                 rowsizer.Add(but,1)
-                but = wx.Button(panel,-1,"完成采购审核",size=(-1,35))
+                but = wx.Button(panel,-1,"完成采购部审核",size=(-1,35))
                 but.Bind( wx.EVT_BUTTON, self.OnFinishPurchaseCheck)
                 rowsizer.Add(but,1)
             elif self.character == "财务":
-                but = wx.Button(panel,-1,"开始财务审核",size=(-1,35))
+                but = wx.Button(panel,-1,"开始财务部审核",size=(-1,35))
                 but.Bind( wx.EVT_BUTTON, self.OnStartFinancialCheck)
                 rowsizer.Add(but,1)
-                but = wx.Button(panel,-1,"完成财务审核",size=(-1,35))
+                but = wx.Button(panel,-1,"完成财务部审核",size=(-1,35))
                 but.Bind( wx.EVT_BUTTON, self.OnFinishFinancialCheck)
                 rowsizer.Add(but,1)
             elif self.character == "经理":
@@ -958,7 +965,7 @@ class DraftOrderPanel(wx.Panel):
                 rowsizer.Add(but,1)
             topsizer.Add(rowsizer,0,wx.EXPAND)
 
-        # pg.AddPage( "技术部审核信息" )
+        # pg.AddPage( "设计部审核信息" )
         # pg.Append( wxpg.PropertyCategory("1 - 订单基本信息2") )
         # sp = pg.Append( wxpg.StringProperty('StringProperty_as_Password', value='ABadPassword') )
         # sp.SetAttribute('Hint', 'This is a hint')
@@ -1124,7 +1131,7 @@ class DraftOrderPanel(wx.Panel):
     def OnStartTechCheck(self,event):
         self.master.checkDataTimer.Stop()
         if self.techCheckState == 'Y':
-            dlg = wx.MessageDialog(self,"此订单已完成技术审核，如果您继续执行审核操作会导致之前的操作全部重置！\r\n请确认是否继续执行审核操作？","信息提示",style=wx.YES_NO)
+            dlg = wx.MessageDialog(self,"此订单已完成设计部审核，如果您继续执行审核操作会导致之前的操作全部重置！\r\n请确认是否继续执行审核操作？","信息提示",style=wx.YES_NO)
             if dlg.ShowModal()==wx.ID_NO:
                 self.master.checkDataTimer.Start(10000)
                 return
@@ -1136,7 +1143,7 @@ class DraftOrderPanel(wx.Panel):
             UpdateManagerCheckStateByID(self.log,WHICHDB,self.ID,'N')
         # self.techCheckFrame = wx.MessageDialog(self,"测试进行中")
         # self.techCheckFrame.ShowModal()
-        self.techCheckDialog = TechCheckDialog(self, self.log, self.ID, character="技术员")
+        self.techCheckDialog = TechCheckDialog(self, self.log, self.ID, character="设计员")
         self.techCheckDialog.CenterOnScreen()
         if self.techCheckDialog.ShowModal()==wx.ID_OK:
             UpdateTechCheckStateByID(self.log, WHICHDB, self.ID, "Y")
@@ -1380,7 +1387,7 @@ class TechCheckDialog(wx.Dialog):
         self.character = character
         # self.log.WriteText("操作员：'%s' 开始执行库存参数设置操作。。。\r\n"%(self.parent.operator_name))
         self.SetExtraStyle(wx.DIALOG_EX_METAL)
-        self.Create(parent, -1, "技术审核对话框", pos=wx.DefaultPosition ,size=(1350,800))
+        self.Create(parent, -1, "设计部审核对话框", pos=wx.DefaultPosition ,size=(1350,800))
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.panel = wx.Panel(self, size=(1350,750))
         sizer.Add(self.panel,1,wx.EXPAND)
@@ -1391,10 +1398,10 @@ class TechCheckDialog(wx.Dialog):
         bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
         bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
         bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
-        btnSave = wx.Button(self, -1, "保存技术审核数据",size=(200,50))
+        btnSave = wx.Button(self, -1, "保存设计部审核数据",size=(200,50))
         btnSave.SetBitmap(bitmap3,wx.LEFT)
         btnSave.Bind(wx.EVT_BUTTON,self.OnSaveBTN)
-        btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成技术审核并退出", size=(200, 50))
+        btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成设计部审核并退出", size=(200, 50))
         btnSaveAndExit.Bind(wx.EVT_BUTTON,self.OnSaveExitBTN)
         btnSaveAndExit.SetBitmap(bitmap1, wx.LEFT)
         btnCancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
@@ -1481,7 +1488,7 @@ class TechCheckDialog(wx.Dialog):
         error=False
         rowNum = self.wallPanelCheckGrid.table.GetNumberRows()
         colNum = self.wallPanelCheckGrid.table.GetNumberCols()
-        for i in range(rowNum-1):
+        for i in range(rowNum):
             temp = ["WALL"]
             for j in range(colNum):
                 temp.append(self.wallPanelCheckGrid.table.GetValue(i,j))
@@ -1503,14 +1510,12 @@ class TechCheckDialog(wx.Dialog):
         colNum = self.ceilingPanelCheckGrid.table.GetNumberCols()
         print("rowNum,colNum=",rowNum,colNum)
         data=[]
-        for i in range(rowNum-1):
+        for i in range(rowNum):
             temp = ["CEILING"]
             for j in range(colNum):
                 temp.append(self.ceilingPanelCheckGrid.table.GetValue(i,j))
             data.append(temp)
-        print("data=",data)
         self.ceilingDataDicList = self.MakeDicListData(data,"CEILING")
-        print("ceilingDataDicList=",self.ceilingDataDicList)
         for row,dics in enumerate(self.ceilingDataDicList):
             for col,section in enumerate(WallCheckEnableSectionList):
                 if dics[section] == '':
@@ -1542,7 +1547,7 @@ class TechCheckDialog(wx.Dialog):
 #         self.id = id
 #         self.character = character
 #         wx.Frame.__init__(
-#             self, parent, -1, "技术审核窗口 —— %05d"%self.id, size=(1350,800)
+#             self, parent, -1, "设计审核窗口 —— %05d"%self.id, size=(1350,800)
 #         )
 #         self.SetBackgroundColour(wx.Colour(240,240,240))
 #         self.Freeze()
