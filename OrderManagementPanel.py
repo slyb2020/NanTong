@@ -351,7 +351,7 @@ class OrderManagementPanel(wx.Panel):
             if self.dataList==[]:
                 _, self.dataList = GetAllOrderAllInfo(self.log, WHICHDB,self.type)
             else:
-                self.log.WriteText("订单数据发生变化，系统完成显示更新！\r\n")
+                self.log.WriteText("订单数据发生变化，系统完成显示更新！")
                 # play("10027.wav")
                 # wx.Bell()
             orderList=[]

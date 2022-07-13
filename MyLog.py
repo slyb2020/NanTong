@@ -17,7 +17,7 @@ class MyLogCtrl(wx.TextCtrl):  # 系统日志显示控件
                  style=wx.NO_BORDER | wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2):
         self.parent = parent
         wx.TextCtrl.__init__(self, parent, id, title, position, size, style)
-        self.WriteText("系统开始运行。。。\r\n")
+        self.WriteText("系统开始运行。。。")
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
         self.Bind(wx.EVT_LEFT_DCLICK, self.OnLeftDown)
 
@@ -41,7 +41,7 @@ class MyLogCtrl(wx.TextCtrl):  # 系统日志显示控件
             try:
                 t = time.localtime(time.time())
                 st = time.strftime("%Y-%m-%d %H:%M:%S  ", t)
-                text = st + text
+                text = st + text + '\r\n'
                 # wx.TextCtrl.SetFont(self, font)
                 # wx.TextCtrl.SetForegroundColour(self, colour)
                 # wx.TextCtrl.SetBackgroundColour(self,backgroundcolour)
