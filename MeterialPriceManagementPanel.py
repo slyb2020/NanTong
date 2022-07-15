@@ -8,6 +8,8 @@ from SetupPropertyDialog import *
 from OrderManagementPanel import TechDrawingButtonEditor
 import wx.grid as gridlib
 import copy
+from wx.lib import plot as wxplot
+import numpy as np
 
 # class DraftOrderPanel(wx.Panel):
 #     def __init__( self, parent, master,log ,size,mode="NEW",ID=None,character="设计员"):
@@ -263,6 +265,75 @@ import copy
 #     def OnFinishPurchaseCheck(self,event):
 #         pass
 
+def DrawLossCurve(w, bias,loss):
+    if len(loss) == 0:
+        line1 = wxplot.PolyLine([],
+                                legend='Wide Line',
+                                colour='white',
+                                width=5)
+        return wxplot.PlotGraphics([line1],
+                                   "w & bias 收敛过程曲线",
+                                   "迭代次数",
+                                   "Value Y")
+    else:
+        data1 = np.hstack((np.arange(0, len(w)).reshape(-1, 1), np.array(w).reshape(-1, 1)))
+        lines1 = wxplot.PolySpline(data1, legend='w', colour='green',width=2)
+        markers1 = wxplot.PolyMarker(data1,
+                                     legend='w',
+                                     colour='green',
+                                     marker='circle',
+                                     size=1,
+                                     )
+
+        data1 = np.hstack((np.arange(0, len(bias)).reshape(-1, 1), np.array(bias).reshape(-1, 1)))
+        lines2 = wxplot.PolySpline(data1, legend='bias', colour='blue',width=2)
+        markers2 = wxplot.PolyMarker(data1,
+                                     legend='bias',
+                                     colour='blue',
+                                     marker='circle',
+                                     size=1,
+                                     )
+
+        data1 = np.hstack((np.arange(0, len(loss)).reshape(-1, 1), np.array(loss).reshape(-1, 1)))
+        lines3 = wxplot.PolySpline(data1, legend='loss', colour='red',width=2)
+        markers3 = wxplot.PolyMarker(data1,
+                                     legend='loss',
+                                     colour='red',
+                                     marker='circle',
+                                     size=1,
+                                     )
+
+    return wxplot.PlotGraphics([lines1, markers1, lines2, markers2, lines3, markers3],
+                               "w & bias 收敛过程曲线",
+                               "迭代次数",
+                               "Y Axis",
+                               )
+
+def DrawSingleCurve(data):
+    if len(data) == 0:
+        line1 = wxplot.PolyLine([],
+                                legend='Wide Line',
+                                colour='red',
+                                width=5)
+        return wxplot.PlotGraphics([line1],
+                                   "w & bias 收敛过程曲线",
+                                   "迭代次数",
+                                   "Value Y")
+    else:
+        data1 = np.hstack((np.arange(0, len(data)).reshape(-1, 1), np.array(data).reshape(-1, 1)))
+        lines1 = wxplot.PolySpline(data1, legend='w', colour='green',width=2)
+        markers1 = wxplot.PolyMarker(data1,
+                                     legend='w',
+                                     colour='green',
+                                     marker='circle',
+                                     size=2,
+                                     )
+    return wxplot.PlotGraphics([lines1, markers1],
+                               "w & bias 收敛过程曲线",
+                               "迭代次数",
+                               "Y Axis",
+                               )
+
 
 class InputTodayPriceGrid(gridlib.Grid):
     def __init__(self, parent, log):
@@ -330,7 +401,77 @@ class MeterialPriceManagementPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1)
         self.parent = parent
         self.log = log
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        hhbox = wx.BoxSizer()
+        self.lossCurvePanel = wxplot.PlotCanvas(self)
+        hhbox.Add(self.lossCurvePanel,1,wx.EXPAND)
+        self.lossCurvePanel2 = wxplot.PlotCanvas(self)
+        hhbox.Add(self.lossCurvePanel2,1,wx.EXPAND)
+        self.lossCurvePanel3 = wxplot.PlotCanvas(self)
+        hhbox.Add(self.lossCurvePanel3,1,wx.EXPAND)
+        vbox.Add(hhbox,1,wx.EXPAND)
+        hhbox = wx.BoxSizer()
+        self.lossCurvePanel4 = wxplot.PlotCanvas(self)
+        hhbox.Add(self.lossCurvePanel4,1,wx.EXPAND)
+        self.lossCurvePanel5 = wxplot.PlotCanvas(self)
+        hhbox.Add(self.lossCurvePanel5,1,wx.EXPAND)
+        self.lossCurvePanel6 = wxplot.PlotCanvas(self)
+        hhbox.Add(self.lossCurvePanel6,1,wx.EXPAND)
+        vbox.Add(hhbox,1,wx.EXPAND)
+        self.SetSizer(vbox)
+        self.Layout()
+        self.lossCurvePanel.enableZoom = False
+        self.lossCurvePanel.showScrollbars = True
+        self.lossCurvePanel.pointLabelFunc = self.DrawPointLabel
+        self.lossCurvePanel.Draw(DrawSingleCurve([1,2,3]))
+        self.lossCurvePanel2.enableZoom = True
+        self.lossCurvePanel2.showScrollbars = True
+        self.lossCurvePanel2.pointLabelFunc = self.DrawPointLabel
+        self.lossCurvePanel2.Draw(DrawLossCurve([i for i in range(10)],[i for i in range(10)],[i for i in range(10)]))
+        self.lossCurvePanel3.enableZoom = True
+        self.lossCurvePanel3.showScrollbars = True
+        self.lossCurvePanel3.pointLabelFunc = self.DrawPointLabel
+        self.lossCurvePanel3.Draw(DrawLossCurve([i for i in range(10)],[i for i in range(10)],[i for i in range(10)]))
+        self.lossCurvePanel4.enableZoom = True
+        self.lossCurvePanel4.showScrollbars = True
+        self.lossCurvePanel4.pointLabelFunc = self.DrawPointLabel
+        self.lossCurvePanel4.Draw(DrawLossCurve([i for i in range(10)],[i for i in range(10)],[i for i in range(10)]))
+        self.lossCurvePanel5.enableZoom = True
+        self.lossCurvePanel5.showScrollbars = True
+        self.lossCurvePanel5.pointLabelFunc = self.DrawPointLabel
+        self.lossCurvePanel5.Draw(DrawLossCurve([i for i in range(10)],[i for i in range(10)],[i for i in range(10)]))
+        self.lossCurvePanel6.enableZoom = True
+        self.lossCurvePanel6.showScrollbars = True
+        self.lossCurvePanel6.pointLabelFunc = self.DrawPointLabel
+        self.lossCurvePanel6.Draw(DrawLossCurve([i for i in range(10)],[i for i in range(10)],[i for i in range(10)]))
 
+    def DrawPointLabel(self, dc, mDataDict):
+        """
+        This is the fuction that defines how the pointLabels are plotted
+
+        :param dc: DC that will be passed
+        :param mDataDict: Dictionary of data that you want to use
+                          for the pointLabel
+
+        As an example I have decided I want a box at the curve point
+        with some text information about the curve plotted below.
+        Any wxDC method can be used.
+
+        """
+        dc.SetPen(wx.Pen(wx.BLACK))
+        dc.SetBrush(wx.Brush(wx.BLACK, wx.BRUSHSTYLE_SOLID))
+
+        sx, sy = mDataDict["scaledXY"]  # scaled x,y of closest point
+        # 10by10 square centered on point
+        dc.DrawRectangle(sx - 5, sy - 5, 10, 10)
+        px, py = mDataDict["pointXY"]
+        cNum = mDataDict["curveNum"]
+        pntIn = mDataDict["pIndex"]
+        legend = mDataDict["legend"]
+        # make a string to display
+        s = "Crv# %i, '%s', Pt. (%.2f,%.2f), PtInd %i" % (
+            cNum, legend, px, py, pntIn)
+        dc.DrawText(s, sx, sy + 1)
 
 class InputTodayPriceDialog(wx.Dialog):
     def __init__(self, parent, log):
@@ -375,7 +516,6 @@ class InputTodayPriceDialog(wx.Dialog):
         error=False
         rowNum = self.todayPriceGrid.GetNumberRows()
         colNum = self.todayPriceGrid.GetNumberCols()
-        print("rowNum=",rowNum)
         for i in range(rowNum):
             temp = []
             for j in range(colNum):

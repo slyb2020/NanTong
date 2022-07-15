@@ -10,7 +10,7 @@ from BluePrintManagementPanel import BluePrintShowPanel
 from DBOperation import GetAllOrderAllInfo, GetAllOrderList, GetOrderDetailRecord, InsertNewOrder, GetStaffInfoWithID, \
     GetDraftOrderDetailByID, UpdateDraftOrderInfoByID, GetTechDrawingDataByID,GetTechCheckStateByID,\
     UpdateTechCheckStateByID,GetDraftComponentInfoByID,UpdateDrafCheckInfoByID,UpdateDraftOrderStateInDB,\
-    UpdatePurchchaseCheckStateByID,UpdateFinancingCheckStateByID,UpdateManagerCheckStateByID
+    UpdatePurchchaseCheckStateByID,UpdateFinancingCheckStateByID,UpdateManagerCheckStateByID,UpdateOrderSquareByID
 from DateTimeConvert import *
 from ID_DEFINE import *
 from OrderDetailTree import OrderDetailTree
@@ -339,8 +339,8 @@ class OrderManagementPanel(wx.Panel):
             self.showRange=[]
             # if self.parent.master.operatorCharacter=="下单员":
             if self.type == "草稿":
-                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","设计部审核","采购部审核","财务部审核","经理审核"]
-                self.colWidthList =      [60,    60,          80,      80,    80,      85,       85,      60,     60,      70,       70,       70,       70]
+                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","设计部审核","采购部审核","财务部审核","订单部审核","经理审核"]
+                self.colWidthList =      [60,    60,          80,      80,    80,      85,       85,      60,     60,      70,       70,       70,           70,       70]
             elif self.type =="在产":
                 self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
                 self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
@@ -348,8 +348,8 @@ class OrderManagementPanel(wx.Panel):
                 self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
                 self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
             elif self.type =="废弃":
-                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","设计部审核","采购审核","财务审核","经理审核"]
-                self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      70,       70,       70,       70]
+                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","设计部审核","采购审核","财务审核","订单部审核","经理审核"]
+                self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      70,       70,       70,       70,        70]
             self.orderDetailData = []
             if self.dataList==[]:
                 _, self.dataList = GetAllOrderAllInfo(self.log, WHICHDB,self.type)
@@ -373,7 +373,7 @@ class OrderManagementPanel(wx.Panel):
                     record[4]=""
                 _, staffInfo = GetStaffInfoWithID(self.log, WHICHDB, record[7])
                 record[7] = staffInfo[3]
-                for i in range(4):
+                for i in range(5):
                     if self.type in ["草稿","废弃"]:
                         if record[9+i]=='N':
                             record[9+i]="未审核"
@@ -773,7 +773,6 @@ class DraftOrderPanel(wx.Panel):
         self.bidDate = pydate2wxdate(datetime.date.today() + datetime.timedelta(days=7))
         if self.ID != None:
             self.ID = int(self.ID)
-
         if self.mode=="NEW":
             pass
         else:
@@ -898,7 +897,7 @@ class DraftOrderPanel(wx.Panel):
                     topsizer.Add(rowsizer, 0, wx.EXPAND)
                     rowsizer = wx.BoxSizer(wx.HORIZONTAL)
                     but = wx.Button(panel, -1, "生成报价单", size=(-1, 35))
-                    # but.Bind(wx.EVT_BUTTON, self.OnDraftOrderEditOkBTN)
+                    but.Bind(wx.EVT_BUTTON, self.OnDraftOrderCreateQuotationBTN)
                     rowsizer.Add(but, 1)
                     topsizer.Add(rowsizer, 0, wx.EXPAND)
                     # btnsizer = wx.BoxSizer()
@@ -1084,6 +1083,16 @@ class DraftOrderPanel(wx.Panel):
                 wx.MessageBox("订单废弃操作失败！","信息提示")
         dlg.Destroy()
 
+    def OnDraftOrderCreateQuotationBTN(self,event):
+        if self.techCheckState != "Y":
+            wx.MessageBox("订单没有完成技术审核，无法生成报价单，请稍后再试！","信息提示")
+            return
+        dlg = QuotationSheetDialog(self,self.log,self.ID,"下单员")
+        dlg.CenterOnScreen()
+        if dlg.ShowModal() == wx.ID_YES:
+            pass
+        dlg.Destroy()
+
     def OnDraftOrderEditOkBTN(self,event):
         d = self.pg.GetPropertyValues(inc_attributes=True)
         dic = {}
@@ -1147,9 +1156,11 @@ class DraftOrderPanel(wx.Panel):
         self.techCheckDialog.CenterOnScreen()
         if self.techCheckDialog.ShowModal()==wx.ID_OK:
             UpdateTechCheckStateByID(self.log, WHICHDB, self.ID, "Y")
-            self.master.dataList = []
-            self.master.recreateEnable=True
-            self.master.ReCreate()
+            UpdatePurchchaseCheckStateByID(self.log,WHICHDB,self.ID,'Y')
+            UpdateFinancingCheckStateByID(self.log,WHICHDB,self.ID,'Y')
+        self.master.dataList = []
+        self.master.recreateEnable=True
+        self.master.ReCreate()
         # self.techCheckFrame = TechCheckFrame(self, self.log,self.ID,character="技术员")
         # self.techCheckFrame.Show(True)
         # self.techCheckFrame.CenterOnScreen()
@@ -1488,8 +1499,10 @@ class TechCheckDialog(wx.Dialog):
         error=False
         rowNum = self.wallPanelCheckGrid.table.GetNumberRows()
         colNum = self.wallPanelCheckGrid.table.GetNumberCols()
-        for i in range(rowNum):
+        square = 0
+        for i in range(rowNum-1):
             temp = ["WALL"]
+            square += float(self.wallPanelCheckGrid.table.GetValue(i,7))
             for j in range(colNum):
                 temp.append(self.wallPanelCheckGrid.table.GetValue(i,j))
             data.append(temp)
@@ -1508,10 +1521,10 @@ class TechCheckDialog(wx.Dialog):
                     self.wallPanelCheckGrid.Refresh()
         rowNum = self.ceilingPanelCheckGrid.table.GetNumberRows()
         colNum = self.ceilingPanelCheckGrid.table.GetNumberCols()
-        print("rowNum,colNum=",rowNum,colNum)
         data=[]
-        for i in range(rowNum):
+        for i in range(rowNum-1):
             temp = ["CEILING"]
+            square += float(self.ceilingPanelCheckGrid.table.GetValue(i,7))
             for j in range(colNum):
                 temp.append(self.ceilingPanelCheckGrid.table.GetValue(i,j))
             data.append(temp)
@@ -1530,6 +1543,7 @@ class TechCheckDialog(wx.Dialog):
                     self.ceilingPanelCheckGrid.Refresh()
         self.wallDataDicList = self.wallDataDicList+self.ceilingDataDicList
         UpdateDrafCheckInfoByID(self.log,WHICHDB,self.id,self.wallDataDicList)
+        UpdateOrderSquareByID(self.log,WHICHDB,self.id,square)
         return False
 
     def MakeDicListData(self,data,type):
@@ -1975,3 +1989,231 @@ class TechDrawingButtonEditor(wxpg.PGTextCtrlEditor):
                 return False  # Return false since value did not change
 
         return super(TechDrawingButtonEditor, self).OnEvent(propGrid, prop, ctrl, event)
+
+class QuotationSheetDialog(wx.Dialog):
+    def __init__(self, parent, log,id,character):
+        wx.Dialog.__init__(self)
+        self.parent = parent
+        self.log = log
+        self.id = id
+        self.character = character
+        self.SetExtraStyle(wx.DIALOG_EX_METAL)
+        self.Create(parent, -1, "报价单生成对话框", pos=wx.DefaultPosition ,size=(1900,900))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.controlPanel = wx.Panel(self, size=(1900,100))
+        sizer.Add(self.controlPanel,0,wx.EXPAND)
+        self.gridPanel = wx.Panel(self, size=(1900,750))
+        sizer.Add(self.gridPanel,1,wx.EXPAND)
+        line = wx.StaticLine(self, -1, size=(30, -1), style=wx.LI_HORIZONTAL)
+        sizer.Add(line, 0, wx.GROW | wx.RIGHT | wx.TOP, 5)
+
+        btnsizer = wx.BoxSizer()
+        bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
+        bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
+        bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
+        btnSave = wx.Button(self, -1, "保存设计部审核数据",size=(200,50))
+        btnSave.SetBitmap(bitmap3,wx.LEFT)
+        # btnSave.Bind(wx.EVT_BUTTON,self.OnSaveBTN)
+        btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成设计部审核并退出", size=(200, 50))
+        # btnSaveAndExit.Bind(wx.EVT_BUTTON,self.OnSaveExitBTN)
+        btnSaveAndExit.SetBitmap(bitmap1, wx.LEFT)
+        btnCancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
+        btnCancel.SetBitmap(bitmap2, wx.LEFT)
+        btnsizer.Add(btnSave, 0)
+        btnsizer.Add((40, -1), 0)
+        btnsizer.Add(btnSaveAndExit, 0)
+        btnsizer.Add((40, -1), 0)
+        btnsizer.Add(btnCancel, 0)
+        sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+        self.SetSizer(sizer)
+        sizer.Fit(self)
+        self.ReCreateGrid()
+
+    def ReCreateGrid(self):
+        self.gridPanel.Freeze()
+        self.gridPanel.DestroyChildren()
+        hbox = wx.BoxSizer()
+        self.quotationSheetGrid = QuotationSheetGrid(self.gridPanel,self.log,self.id)
+        hbox.Add(self.quotationSheetGrid,1,wx.EXPAND)
+        self.gridPanel.SetSizer(hbox)
+        self.gridPanel.Layout()
+        self.gridPanel.Thaw()
+
+class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
+    def __init__(self, parent,  log, id):
+        gridlib.Grid.__init__(self, parent, -1)
+        self.Freeze()
+        self.log = log
+        self.moveTo = None
+        self.Bind(wx.EVT_IDLE, self.OnIdle)
+        self.CreateGrid(100, 22)  # , gridlib.Grid.SelectRows)
+        self.EnableEditing(False)
+        self.SetRowLabelSize(50)
+        self.SetColLabelSize(25)
+        self.SetColSize(0,125)
+        self.SetColSize(11,35)
+        self.SetColSize(12,100)
+        self.SetColSize(14,105)
+        self.SetColSize(21,105)
+        for i in range(50):
+            for j in range(25):
+                self.SetCellAlignment(i, j, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE)
+        self.SetColLabelAlignment(wx.ALIGN_CENTRE, wx.ALIGN_CENTRE_VERTICAL)
+        self.ReCreate()
+        # for i, title in enumerate(self. colLabelValueList):
+        #     self.SetColLabelValue(i,title)
+        # for i, width in enumerate(self.master.colWidthList):
+        #     self.SetColSize(i, width)
+        #
+        # for i, order in enumerate(self.master.dataArray):
+        #     self.SetRowSize(i, 25)
+        #     for j, item in enumerate(order):#z最后一列位子订单列表，不再grid上显示
+        #         # self.SetCellBackgroundColour(i,j,wx.Colour(250, 250, 250))
+        #         self.SetCellAlignment(i, j, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE_VERTICAL)
+        #         self.SetCellValue(i, j, str(item))
+        #         if j==0:
+        #             if int(order[0])<2:
+        #                 self.SetCellBackgroundColour(i,j,wx.RED)
+        #             elif int(order[0])<5:
+        #                 self.SetCellBackgroundColour(i,j,wx.YELLOW)
+        #         elif j>=9:
+        #             if item=="未审核":
+        #                 self.SetCellBackgroundColour(i,j,wx.Colour(250,180,180))
+        #             elif item =="审核通过":
+        #                 self.SetCellBackgroundColour(i,j,wx.GREEN)
+        #             else:
+        #                 self.SetCellBackgroundColour(i,j,wx.YELLOW)
+
+
+
+        # self.Bind(gridlib.EVT_GRID_SELECT_CELL, self.OnSelectCell)
+        # self.Bind(gridlib.EVT_GRID_EDITOR_SHOWN, self.OnEditorShown)
+        # self.Bind(gridlib.EVT_GRID_EDITOR_HIDDEN, self.OnEditorHidden)
+        # self.Bind(gridlib.EVT_GRID_EDITOR_CREATED, self.OnEditorCreated)
+        self.Thaw()
+
+    def ReCreate(self):
+        self.ClearGrid()
+        self.SetCellValue(0,0,"INEXA TNF")
+        self.SetCellValue(0,12,"Currency rate")
+        self.SetCellValue(0,13,"6.66")
+        self.SetCellValue(0,14,"USD-CNY")
+        self.SetCellValue(0,15,"2022/6/27")
+
+        self.SetCellValue(1,0,"Date: ")
+        self.SetCellValue(1,1,"2022/6/27")
+        self.SetCellValue(1,12,"OverHead")
+        self.SetCellValue(1,13,"26%")
+        self.SetCellValue(1,14,"Over-head by NT	")
+
+        self.SetCellValue(2,0,"Project No.:")
+        self.SetCellValue(2,1,"Senta 123")
+        self.SetCellValue(2,12,"crap rate")
+        self.SetCellValue(2,13,"3%")
+        self.SetCellValue(2,14,"All")
+
+        self.SetCellValue(3,0,"Inexa Quotation No.: ")
+        self.SetCellValue(3,1,"Senta 123")
+        self.SetCellValue(3,12,"Profile")
+        self.SetCellValue(3,13,"15%")
+        self.SetCellValue(3,14,"All")
+
+        self.SetCellValue(4,12,"CM for NT")
+        self.SetCellValue(4,13,"20%")
+        self.SetCellValue(4,14,"Proposed by NT")
+
+        self.SetCellValue(5,12,"CM for DK")
+        self.SetCellValue(5,13,"0%")
+        self.SetCellValue(5,14,"TBD by DK office")
+
+        self.SetCellValue(6,12,"Agent rate")
+        self.SetCellValue(6,13,"0%")
+        self.SetCellValue(6,14,"TBD by DK office")
+
+        self.SetCellValue(7, 0, "Re:")
+        self.SetCellValue(7, 1, "TNF accommodation system")
+        self.SetCellValue(7,12,"Bussiness type")
+        self.SetCellValue(7,13,"Export")
+        self.SetCellValue(7,14,"Export")
+
+        self.SetCellValue(8, 0, "1)TNF Wall Panel")
+        self.SetCellValue(8,12,"Direct costs")
+        self.SetCellValue(8,14,"Scrap rate")
+        self.SetCellValue(8,15,"Over-head")
+        self.SetCellValue(8,16,"Profile")
+        self.SetCellValue(8,17,"Margin-NT")
+        self.SetCellValue(8,18,"Margin-DK")
+        self.SetCellValue(8,19,"Agent  rate")
+        self.SetCellValue(8,20,"sales price")
+        self.SetCellValue(8,21,"Unit sales price")
+
+        self.SetCellValue(9, 0, "Item")
+        self.SetCellValue(9, 1, "Product")
+        self.SetCellValue(9, 2, "Product")
+        self.SetCellValue(9, 3, "Product")
+        self.SetCellValue(9, 4, "Product")
+        self.SetCellValue(9, 5, "Product")
+        self.SetCellValue(9, 6, "Product")
+        self.SetCellValue(9, 7, "Unit")
+        self.SetCellValue(9, 8, "Total")
+        self.SetCellValue(9, 9, "Unit Price")
+        self.SetCellValue(9, 10, "Total Price")
+        self.SetCellValue(9,12,"Material")
+        self.SetCellValue(9,13,"Labor")
+        self.SetCellValue(9,14,"3.0%")
+        self.SetCellValue(9,15,"26.0%")
+        self.SetCellValue(9,16,"15.0%")
+        self.SetCellValue(9,17,"20.0%")
+        self.SetCellValue(9,18,"0.0%")
+        self.SetCellValue(9,19,"0.0%")
+        self.SetCellValue(9,21,"Inc. over head")
+
+        self.SetCellValue(10, 1, "No.")
+        self.SetCellValue(10, 2, "type")
+        self.SetCellValue(10, 3, "surface")
+        self.SetCellValue(10, 4, "height/length (mm)")
+        self.SetCellValue(10, 5, "width (mm)")
+        self.SetCellValue(10, 6, "thickness (mm)")
+        self.SetCellValue(10, 8, "Quantity")
+        self.SetCellValue(10, 9, "In USD")
+        self.SetCellValue(10, 10, "In USD")
+        self.SetCellValue(10,12,"RMB")
+        self.SetCellValue(10,13,"RMB")
+        self.SetCellValue(10,14,"RMB")
+        self.SetCellValue(10,15,"RMB")
+        self.SetCellValue(10,16,"RMB")
+        self.SetCellValue(10,17,"RMB")
+        self.SetCellValue(10,18,"RMB")
+        self.SetCellValue(10,19,"RMB")
+        self.SetCellValue(10,20,"RMB")
+        self.SetCellValue(10,21,"USD")
+
+        self.SetCellSize(7, 1, 1, 10)
+        self.SetCellSize(8, 0, 1, 2)
+        self.SetCellSize(8, 12, 1, 2)
+        self.SetCellSize(8, 20, 2, 1)
+        self.SetCellSize(9, 0, 2, 1)
+        self.SetCellSize(9, 7, 2, 1)
+
+
+        # for i, title in enumerate(self.master.colLabelValueList):
+        #     self.SetColLabelValue(i,title)
+        # for i, width in enumerate(self.master.colWidthList):
+        #     self.SetColSize(i, width)
+        # for i, order in enumerate(self.master.dataArray[:,:7]):
+        #     self.SetRowSize(i, 25)
+        #     for j, item in enumerate(order):
+        #         self.SetCellAlignment(i, j, wx.ALIGN_CENTRE, wx.ALIGN_CENTRE_VERTICAL)
+        #         self.SetCellValue(i, j, str(item))
+        #         if int(order[0])<2:
+        #             self.SetCellBackgroundColour(i,j,wx.RED)
+        #         elif int(order[0])<5:
+        #             self.SetCellBackgroundColour(i,j,wx.YELLOW)
+
+
+    def OnIdle(self, evt):
+        if self.moveTo is not None:
+            self.SetGridCursor(self.moveTo[0], self.moveTo[1])
+            self.moveTo = None
+
+        evt.Skip()

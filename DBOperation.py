@@ -107,13 +107,13 @@ def GetAllOrderAllInfo(log, whichDB,type):
         return -1, []
     cursor = db.cursor()
     if type == "草稿":
-        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`投标时间`,`下单时间`,`下单员ID`,`状态`,`设计审核状态`,`采购审核状态`,`财务审核状态`,`经理审核状态` from `订单信息` where `状态`='%s' """%type
+        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`投标时间`,`下单时间`,`下单员ID`,`状态`,`设计审核状态`,`采购审核状态`,`财务审核状态`,`订单部审核状态`,`经理审核状态` from `订单信息` where `状态`='%s' """%type
     elif type == "在产":
         sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态` from `订单信息` where `状态`='%s' """%type
     elif type == "完工":
         sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`订单交货日期`,`下单时间`,`下单员ID`,`状态` from `订单信息` where `状态`='%s' """%type
     elif type == "废弃":
-        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`投标时间`,`下单时间`,`下单员ID`,`状态`,`设计审核状态`,`采购审核状态`,`财务审核状态`,`经理审核状态` from `订单信息` where `状态`='%s' """%type
+        sql = """SELECT `订单编号`,`订单名称`,`总价`,`产品数量`,`投标时间`,`下单时间`,`下单员ID`,`状态`,`设计审核状态`,`采购审核状态`,`财务审核状态`,`订单部审核状态`,`经理审核状态` from `订单信息` where `状态`='%s' """%type
     cursor.execute(sql)
     temp = cursor.fetchall()  # 获得压条信息
     db.close()
@@ -1899,6 +1899,28 @@ def UpdateManagerCheckStateByID(log,whichDB,id,state):
         result = -1
     db.close()
     return result
+
+def UpdateOrderSquareByID(log,whichDB,id,square):
+    id = int(id)
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return []
+    cursor = db.cursor()
+    sql = "UPDATE `订单信息` SET `产品数量`= '%s' where `Index`= %s " % (square, id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("修改设计审核状态出错！")
+        db.rollback()
+        result = -1
+    db.close()
+
 
 def UpdateDrafCheckInfoByID(log,whichDB,id,dicList):
     id = int(id)

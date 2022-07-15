@@ -40,7 +40,7 @@ WallCheckEnableSectionDic = {
 }
 
 MeterialCharacterList = ['材料名', '规格', '供应商', '价格', '单位', '备注']
-MeterialCharacterWidthList = [160, 160, 160, 160, 80, 80]
+MeterialCharacterWidthList = [180, 180, 200, 160, 100, 100]
 
 BIDMODE = ['wxPython Rules', 'wxPython Rocks', 'wxPython Is The Best']
 BIDMETHOD = ['离岸价', '到岸价']
