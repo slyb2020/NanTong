@@ -10,7 +10,8 @@ from BluePrintManagementPanel import BluePrintShowPanel
 from DBOperation import GetAllOrderAllInfo, GetAllOrderList, GetOrderDetailRecord, InsertNewOrder, GetStaffInfoWithID, \
     GetDraftOrderDetailByID, UpdateDraftOrderInfoByID, GetTechDrawingDataByID,GetTechCheckStateByID,\
     UpdateTechCheckStateByID,GetDraftComponentInfoByID,UpdateDrafCheckInfoByID,UpdateDraftOrderStateInDB,\
-    UpdatePurchchaseCheckStateByID,UpdateFinancingCheckStateByID,UpdateManagerCheckStateByID,UpdateOrderSquareByID
+    UpdatePurchchaseCheckStateByID,UpdateFinancingCheckStateByID,UpdateManagerCheckStateByID,UpdateOrderSquareByID,\
+    GetProductMeterialUnitPriceInDB,GetMeterialUnitPriceByIdInDB
 from DateTimeConvert import *
 from ID_DEFINE import *
 from OrderDetailTree import OrderDetailTree
@@ -2042,15 +2043,40 @@ class QuotationSheetDialog(wx.Dialog):
 class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
     def __init__(self, parent,  log, id):
         gridlib.Grid.__init__(self, parent, -1)
-        self.Freeze()
+        self.id = id
         self.log = log
         self.moveTo = None
         self.Bind(wx.EVT_IDLE, self.OnIdle)
-        self.CreateGrid(100, 22)  # , gridlib.Grid.SelectRows)
+        self.dataWall = GetDraftComponentInfoByID(self.log, WHICHDB, self.id, "WALL")
+        self.dataCeiling = GetDraftComponentInfoByID(self.log, WHICHDB, self.id, "CEILING")
+        self.wallUnitPrice = [0] * len(self.dataWall)
+        self.wallTotalPrice = [0] * len(self.dataWall)
+        for i,dic in enumerate(self.dataWall):
+            if dic['单价']!=None:
+                self.wallUnitPrice[i] = float(dic['单价'])
+            if dic['总价']==None:
+                self.wallTotalPrice[i]=self.wallUnitPrice[i]*float(dic['数量'])
+            else:
+                self.wallTotalPrice[i]=float(dic['总价'])
+        self.ceilingUnitPrice = [0]*len(self.dataCeiling)
+        self.ceilingTotalPrice = [0]*len(self.dataCeiling)
+        for i,dic in enumerate(self.dataCeiling):
+            if dic['单价']!=None:
+                self.ceilingUnitPrice[i] = float(dic['单价'])
+            if dic['总价'] == None:
+                self.ceilingTotalPrice[i] = self.ceilingUnitPrice[i] * float(dic['数量'])
+            else:
+                self.ceilingTotalPrice[i] = float(dic['总价'])
+        self.Freeze()
+        self.CreateGrid(23+len(self.dataWall)+len(self.dataCeiling), 22)  # , gridlib.Grid.SelectRows)
         self.EnableEditing(False)
         self.SetRowLabelSize(50)
         self.SetColLabelSize(25)
-        self.SetColSize(0,125)
+        self.SetColSize(0,50)
+        self.SetColSize(4,135)
+        self.SetColSize(5,100)
+        self.SetColSize(6,100)
+        self.SetColSize(7,60)
         self.SetColSize(11,35)
         self.SetColSize(12,100)
         self.SetColSize(14,105)
@@ -2101,19 +2127,19 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         self.SetCellValue(0,15,"2022/6/27")
 
         self.SetCellValue(1,0,"Date: ")
-        self.SetCellValue(1,1,"2022/6/27")
+        self.SetCellValue(1,2,"2022/6/27")
         self.SetCellValue(1,12,"OverHead")
         self.SetCellValue(1,13,"26%")
         self.SetCellValue(1,14,"Over-head by NT	")
 
         self.SetCellValue(2,0,"Project No.:")
-        self.SetCellValue(2,1,"Senta 123")
+        self.SetCellValue(2,2,"Senta 123")
         self.SetCellValue(2,12,"crap rate")
         self.SetCellValue(2,13,"3%")
         self.SetCellValue(2,14,"All")
 
         self.SetCellValue(3,0,"Inexa Quotation No.: ")
-        self.SetCellValue(3,1,"Senta 123")
+        self.SetCellValue(3,2,"Senta 123")
         self.SetCellValue(3,12,"Profile")
         self.SetCellValue(3,13,"15%")
         self.SetCellValue(3,14,"All")
@@ -2188,12 +2214,70 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         self.SetCellValue(10,20,"RMB")
         self.SetCellValue(10,21,"USD")
 
+        self.SetCellSize(0, 0, 1, 2)
+        self.SetCellSize(1, 0, 1, 2)
+        self.SetCellSize(2, 0, 1, 2)
+        self.SetCellSize(3, 0, 1, 2)
         self.SetCellSize(7, 1, 1, 10)
         self.SetCellSize(8, 0, 1, 2)
         self.SetCellSize(8, 12, 1, 2)
         self.SetCellSize(8, 20, 2, 1)
         self.SetCellSize(9, 0, 2, 1)
         self.SetCellSize(9, 7, 2, 1)
+        for i, wallDict in enumerate(self.dataWall):
+            self.SetCellValue(11+i,0,str(i+1))
+            self.SetCellValue(11+i,1,wallDict['产品名称'])
+            self.SetCellValue(11+i,2,wallDict['产品型号'])
+            self.SetCellValue(11+i,3,wallDict['产品表面材料'])
+            self.SetCellValue(11+i,4,wallDict['产品长度'])
+            self.SetCellValue(11+i,5,wallDict['产品宽度'])
+            self.SetCellValue(11+i,6,wallDict['产品厚度'])
+            self.SetCellValue(11+i,7,wallDict['单位'])
+            self.SetCellValue(11+i,8,wallDict['数量'])
+            _,temp = GetProductMeterialUnitPriceInDB(self.log,WHICHDB,wallDict)
+            print("temp=",temp)
+            self.meterialFactorX=float(temp['X面材料系数'])
+            self.meterialIdX=int(temp['X面材料id'])
+            self.meterialFactorY=float(temp['Y面材料系数'])
+            self.meterialIdY=int(temp['Y面材料id'])
+            self.meterialFactorGlue=float(temp['胶水系数'])
+            self.meterialIdGlue=int(temp['胶水id'])
+            self.meterialFactorRockWool=float(temp['岩棉系数'])
+            self.meterialIdRockWool=int(temp['岩棉id'])
+            _,temp2 = GetMeterialUnitPriceByIdInDB(self.log,WHICHDB,'2022-07-14',self.meterialIdX)
+            if temp2['单位']=='m2':
+                self.meterialUnitPriceX = float(temp['X面材料系数'])*float(temp2['价格'])
+            else:
+                self.meterialUnitPriceX = float(temp['X面厚度'])*float(temp2['密度'])*float(temp['X面材料系数'])*float(temp2['价格'])/1000
+            print("temp2=",temp2)
+            print("X面单价：%0.2f"%self.meterialUnitPriceX)
+            if self.meterialFactorY!=None:
+                _,temp2 = GetMeterialUnitPriceByIdInDB(self.log,WHICHDB,'2022-07-14',self.meterialIdY)
+                if temp2['单位']=='m2':
+                    self.meterialUnitPriceY = float(temp['Y面材料系数'])*float(temp2['价格'])
+                else:
+                    self.meterialUnitPriceY = float(temp['Y面厚度'])*float(temp2['密度'])*float(temp['Y面材料系数'])*float(temp2['价格'])/1000
+            else:
+                self.meterialUnitPriceY=0.0
+            print("temp2=",temp2)
+            print("Y面单价：%0.2f"%self.meterialUnitPriceY)
+            if self.meterialFactorY!=None:
+                _,temp2 = GetMeterialUnitPriceByIdInDB(self.log,WHICHDB,'2022-07-14',self.meterialIdGlue)
+                self.meterialUnitPriceGlue = float(temp['胶水系数'])*float(temp2['价格'])/1000000.
+            else:
+                self.meterialUnitPriceGlue=0.0
+            print("temp2=",temp2)
+            print("胶水单价：%0.2f"%self.meterialUnitPriceGlue)
+            _, temp2 = GetMeterialUnitPriceByIdInDB(self.log, WHICHDB, '2022-07-14', self.meterialIdRockWool)
+            self.meterialUnitPriceRockWool = float(temp['SQM Per Piece'])*150*float(temp['产品厚度'])*float(temp['岩棉系数']) * float(temp2['价格']) / 1000000.
+            print("temp2=",temp2)
+            print("岩棉单价：%0.2f"%self.meterialUnitPriceRockWool)
+            self.meterialUnitPrice=self.meterialUnitPriceX+self.meterialUnitPriceY+self.meterialUnitPriceGlue+self.meterialUnitPriceRockWool
+            print("原材料单价：%.2f"%self.meterialUnitPrice)
+            # self.wallUnitPrice = self.meterialUnitPrice/6.66
+            # self.SetCellValue(11+i,9,'%.2f'%self.wallUnitPrice)
+            # self.wallTotalPrice = self.wallUnitPrice*float(wallDict['数量'])
+            # self.SetCellValue(11+i,10,'%.2f'%self.wallTotalPrice)
 
 
         # for i, title in enumerate(self.master.colLabelValueList):

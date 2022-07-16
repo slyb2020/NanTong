@@ -289,4 +289,33 @@ class ExcelGridShowPanel(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         # self.log.write("OnEditorCreated: (%d, %d) %s\n" %
         #                (evt.GetRow(), evt.GetCol(), evt.GetControl()))
 
-
+from ID_DEFINE import *
+if __name__ == "__main__":
+    whichDB = 2
+    log = None
+    temp = GetSheetDataFromExcelFileName('Total.xlsx', '采购部 产品的材料单价')
+    temp = temp[1:34]
+    result = []
+    for a in temp:
+        a = a[2:12]
+        result.append(list(a))
+    import pymysql as MySQLdb
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+    cursor = db.cursor()
+    for data in result:
+        sql = "INSERT INTO 产品材料单价表 (`产品名称`,`产品型号`,`产品表面材料`,`产品长度`,`产品宽度`,`产品厚度`,`单位`,`SQM Per PIece`,`X面厚度`,`Y面厚度`)" \
+              "VALUES ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')"\
+              % (data[0],data[1],data[2],str(data[3]),str(data[4]),str(data[5]),data[6],str(data[7]),str(data[8]),str(data[9]))
+        try:
+            cursor.execute(sql)
+            db.commit()  # 必须有，没有的话插入语句不会执行
+        except:
+            db.rollback()
+            print("error")
+    db.close()
