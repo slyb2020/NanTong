@@ -135,6 +135,26 @@ def GetOrderByOrderID(log, whichDB, orderID):
     db.close()
     return 0, temp
 
+def GetAllProductMeterialUnitPriceInDB(log, whichDB):
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("5无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("5无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = """SELECT `产品名称`,`产品型号`,`产品表面材料`,`产品长度`,`产品宽度`,`产品厚度`,`SQM Per Piece`,`X面厚度`,`Y面厚度`,`X面材料id`,`X面材料系数`,`Y面材料id`,`Y面材料系数`,`胶水id`,`胶水系数`,`岩棉id`,`岩棉系数`  from `产品材料单价表`"""
+    cursor.execute(sql)
+    temp = cursor.fetchall()
+    result=[]
+    for item in temp:
+        item = dict(zip(['产品名称','产品型号','产品表面材料','产品长度','产品宽度','产品厚度','SQM Per Piece','X面厚度','Y面厚度','X面材料id','X面材料系数','Y面材料id','Y面材料系数','胶水id','胶水系数','岩棉id','岩棉系数'], item))
+        result.append(item)
+    db.close()
+    return 0, result
+
 def GetProductMeterialUnitPriceInDB(log, whichDB, dic):
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
@@ -146,13 +166,33 @@ def GetProductMeterialUnitPriceInDB(log, whichDB, dic):
         return -1, []
     cursor = db.cursor()
     sql = """SELECT `产品厚度`,`SQM Per Piece`,`X面厚度`,`Y面厚度`,`X面材料id`,`X面材料系数`,`Y面材料id`,`Y面材料系数`,`胶水id`,`胶水系数`,`岩棉id`,`岩棉系数`  from `产品材料单价表`
-    where `产品名称` = '%s' and `产品型号`='%s' and `产品表面材料`='%s' and `产品长度`='%s' and `产品宽度`='%s' and `产品厚度`='%s'
-      """%(dic['产品名称'],dic['产品型号'],dic['产品表面材料'],dic['产品长度'],dic['产品宽度'],dic['产品厚度'])
+    where `产品名称` = '%s' and `产品型号`='%s' and `产品表面材料`='%s' and `产品长度`='%s' and `产品宽度`='%s' 
+      """%(dic['产品名称'],dic['产品型号'],dic['产品表面材料'],dic['产品长度'],dic['产品宽度'])
     cursor.execute(sql)
-    temp = cursor.fetchone()  # 获得压条信息
+    temp = cursor.fetchone()
     temp = dict(zip(['产品厚度','SQM Per Piece','X面厚度','Y面厚度','X面材料id','X面材料系数','Y面材料id','Y面材料系数','胶水id','胶水系数','岩棉id','岩棉系数'], temp))
     db.close()
     return 0, temp
+
+def GetAllMeterialUnitPriceByIdInDB(log, whichDB, Date):
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("5无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("5无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = """SELECT `材料名`,`单位`,`价格`,`密度`  from `原材料单价表` where `市价更新日期` = '%s' """%(Date)
+    cursor.execute(sql)
+    temp = cursor.fetchall()  # 获得压条信息
+    result=[]
+    for item in temp:
+        item = dict(zip(['材料名','单位','价格','密度'], item))
+        result.append(item)
+    db.close()
+    return 0, result
 
 def GetMeterialUnitPriceByIdInDB(log, whichDB, Date, id):
     try:
@@ -172,6 +212,26 @@ def GetMeterialUnitPriceByIdInDB(log, whichDB, Date, id):
     temp = dict(zip(['材料名','单位','价格','密度'], temp))
     db.close()
     return 0, temp
+
+def GetProductLaborUnitPriceInDB(log, whichDB):
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("5无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("5无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = """SELECT `产品名称`,`产品表面材料`,`每平方所需工时`  from `产品工时单价表` """
+    cursor.execute(sql)
+    temp = cursor.fetchall()
+    result=[]
+    for item in temp:
+        item = dict(zip(['产品名称','产品表面材料','每平方所需工时'], item))
+        result.append(item)
+    db.close()
+    return 0, result
 
 def GetOrderNameByOrderID(log, whichDB, orderID):
     try:
