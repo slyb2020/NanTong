@@ -12,7 +12,8 @@ from DBOperation import GetAllOrderAllInfo, GetAllOrderList, GetOrderDetailRecor
     UpdateTechCheckStateByID,GetDraftComponentInfoByID,UpdateDrafCheckInfoByID,UpdateDraftOrderStateInDB,\
     UpdatePurchchaseCheckStateByID,UpdateFinancingCheckStateByID,UpdateManagerCheckStateByID,UpdateOrderSquareByID,\
     GetProductMeterialUnitPriceInDB,GetMeterialUnitPriceByIdInDB,GetProductLaborUnitPriceInDB,\
-    GetAllProductMeterialUnitPriceInDB,GetAllMeterialUnitPriceByIdInDB
+    GetAllProductMeterialUnitPriceInDB,GetAllMeterialUnitPriceByIdInDB,GetExchagneRateInDB,\
+    UpdateOrderOperatorCheckStateByID
 from DateTimeConvert import *
 from ID_DEFINE import *
 from OrderDetailTree import OrderDetailTree
@@ -794,6 +795,8 @@ class DraftOrderPanel(wx.Panel):
             self.techDrawingName3 = dic["客户原始技术图纸名3"]
             self.techDrawingName4 = dic["客户原始技术图纸名4"]
             self.techCheckState = dic['设计审核状态']
+            self.orderOperatorCheckState = dic['订单部审核状态']
+            self.managerCheckState = dic['经理审核状态']
             self.techDrawingName = self.techDrawingName.strip("\"")
             if self.techDrawingName2 == None:
                 self.techDrawingName2 = ""
@@ -898,7 +901,11 @@ class DraftOrderPanel(wx.Panel):
                     rowsizer.Add(but, 1)
                     topsizer.Add(rowsizer, 0, wx.EXPAND)
                     rowsizer = wx.BoxSizer(wx.HORIZONTAL)
-                    but = wx.Button(panel, -1, "生成报价单", size=(-1, 35))
+                    if self.orderOperatorCheckState == 'Y' and self.managerCheckState =='Y':
+                        temp = "生成报价单"
+                    else:
+                        temp = "进行订单部审核"
+                    but = wx.Button(panel, -1, temp, size=(-1, 35), name=temp)
                     but.Bind(wx.EVT_BUTTON, self.OnDraftOrderCreateQuotationBTN)
                     rowsizer.Add(but, 1)
                     topsizer.Add(rowsizer, 0, wx.EXPAND)
@@ -1086,14 +1093,18 @@ class DraftOrderPanel(wx.Panel):
         dlg.Destroy()
 
     def OnDraftOrderCreateQuotationBTN(self,event):
+        obj = event.GetEventObject()
+        name = obj.GetName()
         if self.techCheckState != "Y":
             wx.MessageBox("订单没有完成技术审核，无法生成报价单，请稍后再试！","信息提示")
             return
-        dlg = QuotationSheetDialog(self,self.log,self.ID,"下单员")
+        dlg = QuotationSheetDialog(self,self.log,self.ID,"下单员",name)
         dlg.CenterOnScreen()
-        if dlg.ShowModal() == wx.ID_YES:
-            pass
+        dlg.ShowModal()
         dlg.Destroy()
+        self.master.dataList = []
+        self.master.recreateEnable = True
+        self.master.ReCreate()
 
     def OnDraftOrderEditOkBTN(self,event):
         d = self.pg.GetPropertyValues(inc_attributes=True)
@@ -1993,16 +2004,19 @@ class TechDrawingButtonEditor(wxpg.PGTextCtrlEditor):
         return super(TechDrawingButtonEditor, self).OnEvent(propGrid, prop, ctrl, event)
 
 class QuotationSheetDialog(wx.Dialog):
-    def __init__(self, parent, log,id,character):
+    def __init__(self, parent, log,id,character,name="进行订单部审核"):
         wx.Dialog.__init__(self)
         self.parent = parent
         self.log = log
         self.id = id
         self.character = character
+        self.name = name
+        self.quotationDate=datetime.date.today() - datetime.timedelta(1)
+        self.exchangeDate=datetime.date.today() - datetime.timedelta(1)
         self.SetExtraStyle(wx.DIALOG_EX_METAL)
         self.Create(parent, -1, "报价单生成对话框", pos=wx.DefaultPosition ,size=(1900,900))
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self.controlPanel = wx.Panel(self, size=(1900,100))
+        self.controlPanel = wx.Panel(self, size=(1900,50))
         sizer.Add(self.controlPanel,0,wx.EXPAND)
         self.gridPanel = wx.Panel(self, size=(1900,750))
         sizer.Add(self.gridPanel,1,wx.EXPAND)
@@ -2013,15 +2027,16 @@ class QuotationSheetDialog(wx.Dialog):
         bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
         bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
         bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
-        btnSave = wx.Button(self, -1, "保存设计部审核数据",size=(200,50))
-        btnSave.SetBitmap(bitmap3,wx.LEFT)
-        # btnSave.Bind(wx.EVT_BUTTON,self.OnSaveBTN)
-        btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成设计部审核并退出", size=(200, 50))
-        # btnSaveAndExit.Bind(wx.EVT_BUTTON,self.OnSaveExitBTN)
+        if self.name == "生成报价单":
+            createQuotationSheetBTN = wx.Button(self,-1,"生成报价单",size=(200, 50))
+            createQuotationSheetBTN.SetBitmap(bitmap3, wx.LEFT)
+            btnsizer.Add((40, -1), 0)
+            btnsizer.Add(createQuotationSheetBTN, 0)
+        btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成订单部审核并退出", size=(200, 50))
+        btnSaveAndExit.Bind(wx.EVT_BUTTON,self.OnSaveExitBTN)
         btnSaveAndExit.SetBitmap(bitmap1, wx.LEFT)
         btnCancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
         btnCancel.SetBitmap(bitmap2, wx.LEFT)
-        btnsizer.Add(btnSave, 0)
         btnsizer.Add((40, -1), 0)
         btnsizer.Add(btnSaveAndExit, 0)
         btnsizer.Add((40, -1), 0)
@@ -2029,24 +2044,85 @@ class QuotationSheetDialog(wx.Dialog):
         sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
         self.SetSizer(sizer)
         sizer.Fit(self)
+        self.ReCreateControlPanel()
         self.ReCreateGrid()
+
+    def OnSaveExitBTN(self,event):
+        UpdateOrderOperatorCheckStateByID(self.log,WHICHDB,self.id,'Y',self.quotationDate,self.exchangeDate)
+        self.Close()
+
+
+    def ReCreateControlPanel(self):
+        vbox=wx.BoxSizer(wx.VERTICAL)
+        hhbox=wx.BoxSizer()
+        hhbox.Add((20,-1))
+        hhbox.Add(wx.StaticText(self.controlPanel,label="请选择报价日期："),0,wx.TOP,15)
+        self.quotationDateCtrl = wx.adv.DatePickerCtrlGeneric(self.controlPanel, size=(135, -1),
+                                                              style = wx.adv.DP_DROPDOWN
+                                           | wx.adv.DP_SHOWCENTURY
+                                           | wx.adv.DP_ALLOWNONE)
+        self.quotationDateCtrl.SetValue(self.quotationDate)
+        hhbox.Add(self.quotationDateCtrl, 0, wx.TOP, 10)
+        hhbox.Add((10,-1))
+        hhbox.Add(wx.StaticLine(self.controlPanel,style=wx.VERTICAL),0,wx.EXPAND)
+        hhbox.Add((10,-1))
+        hhbox.Add(wx.StaticText(self.controlPanel,label="请选择汇率日期："),0,wx.TOP,15)
+        self.exchangeDateCtrl = wx.adv.DatePickerCtrlGeneric(self.controlPanel, size=(135, -1),
+                                                             style = wx.adv.DP_DROPDOWN
+                                           | wx.adv.DP_SHOWCENTURY
+                                           | wx.adv.DP_ALLOWNONE)
+        self.exchangeDateCtrl.SetValue(self.exchangeDate)
+        hhbox.Add(self.exchangeDateCtrl, 0, wx.TOP, 10)
+        vbox.Add(hhbox,1,wx.EXPAND)
+        self.controlPanel.SetSizer(vbox)
+        self.quotationDateCtrl.Bind(wx.adv.EVT_DATE_CHANGED, self.OnQuotationDateChanged)
+        self.exchangeDateCtrl.Bind(wx.adv.EVT_DATE_CHANGED,self.OnExchangeRatDateChanged)
+
+    def OnExchangeRatDateChanged(self,event):
+        if event.GetDate() != self.exchangeDate:
+            exchangeDate = event.GetDate()
+            exchangeDate = wxdate2pydate(exchangeDate)
+            result = GetExchagneRateInDB(self.log,WHICHDB,exchangeDate)
+            if result!=None:
+                self.exchangeDate = exchangeDate
+                busy = PBI.PyBusyInfo("正在为您生成新的报价单，请稍候。。。", parent=None, title="系统忙提示",
+                                      icon=images.Smiles.GetBitmap())
+                wx.Yield()
+                self.ReCreateGrid()
+                del busy
+            else:
+                wx.MessageBox("系统无法获得此日期的美元汇率，请更改日期后重试！")
+                self.exchangeDateCtrl.SetValue(self.exchangeDate)
+
+    def OnQuotationDateChanged(self,event):
+        if event.GetDate() != self.quotationDate:
+            self.quotationDate = event.GetDate()
+            self.quotationDate = wxdate2pydate(self.quotationDate)
+            busy = PBI.PyBusyInfo("正在为您生成新的报价单，请稍候。。。", parent=None, title="系统忙提示",
+                                  icon=images.Smiles.GetBitmap())
+            wx.Yield()
+            self.ReCreateGrid()
+            del busy
+        event.Skip()
 
     def ReCreateGrid(self):
         self.gridPanel.Freeze()
         self.gridPanel.DestroyChildren()
         hbox = wx.BoxSizer()
-        self.quotationSheetGrid = QuotationSheetGrid(self.gridPanel,self.log,self.id)
+        self.quotationSheetGrid = QuotationSheetGrid(self.gridPanel,self.log,self.id,self.quotationDate,self.exchangeDate)
         hbox.Add(self.quotationSheetGrid,1,wx.EXPAND)
         self.gridPanel.SetSizer(hbox)
         self.gridPanel.Layout()
         self.gridPanel.Thaw()
 
 class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
-    def __init__(self, parent,  log, id):
+    def __init__(self, parent, log, id, quotationDate, exchangeRateDate):
         gridlib.Grid.__init__(self, parent, -1)
         self.id = id
         self.log = log
         self.moveTo = None
+        self.quotationDate = quotationDate
+        self.exchangeRateDate = exchangeRateDate
         self.Bind(wx.EVT_IDLE, self.OnIdle)
         self.dataWall = GetDraftComponentInfoByID(self.log, WHICHDB, self.id, "WALL")
         self.dataCeiling = GetDraftComponentInfoByID(self.log, WHICHDB, self.id, "CEILING")
@@ -2096,7 +2172,7 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         self.marginNT = 0.2
         self.marginDK = 0
         self.agentRate = 0
-        self.exchangeRate = 6.66
+        self.exchangeRate = float(GetExchagneRateInDB(self.log,WHICHDB,str(self.exchangeRateDate)))/100.-0.02
         _, self.productLaborAmountList = GetProductLaborUnitPriceInDB(self.log, WHICHDB)
 
         self.ReCreate()
@@ -2132,16 +2208,26 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
 
     def ReCreate(self):
         _, self.allProductMeterialUnitPriceList = GetAllProductMeterialUnitPriceInDB(self.log, WHICHDB)
-        _, self.allMeterialUnitPriceList = GetAllMeterialUnitPriceByIdInDB(self.log, WHICHDB, '2022-07-14')
+        quotationDate = str(self.quotationDate)
+        # if ' 'in quotationDate:
+        #     quotationDate = quotationDate.split(' ')[0]
+        # print("quotationDate=",quotationDate)
+        # if '/' in quotationDate:
+        #     quotationDate = quotationDate.split('/')
+        # elif '-' in quotationDate:
+        #     quotationDate = quotationDate.split('-')
+        # quotationDate = datetime.date(int(quotationDate[0]),int(quotationDate[1]),int(quotationDate[2]))
+        # quotationDate = str(quotationDate)
+        _, self.allMeterialUnitPriceList = GetAllMeterialUnitPriceByIdInDB(self.log, WHICHDB, quotationDate)
         self.ClearGrid()
         self.SetCellValue(0,0,"INEXA TNF")
         self.SetCellValue(0,12,"Currency rate")
         self.SetCellValue(0,13,"%.2f"%self.exchangeRate)
         self.SetCellValue(0,14,"USD-CNY")
-        self.SetCellValue(0,15,"2022/6/27")
+        self.SetCellValue(0, 15, str(self.exchangeRateDate))
 
         self.SetCellValue(1,0,"Date: ")
-        self.SetCellValue(1,2,"2022/6/27")
+        self.SetCellValue(1,2,quotationDate)
         self.SetCellValue(1,12,"OverHead")
         self.SetCellValue(1,13,"26%")
         self.SetCellValue(1,14,"Over-head by NT	")
@@ -2248,7 +2334,6 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         wallTotalAmount = 0.0
         wallTatalPriceUSD = 0.0
         for i, wallDict in enumerate(self.dataWall):
-            print("xi=",i)
             wallAmount = float(wallDict['数量'])
             wallTotalAmount += wallAmount
             self.SetCellValue(11+i,0,str(i+1))
@@ -2299,7 +2384,6 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
             temp2 = self.allMeterialUnitPriceList[self.meterialIdRockWool]
             self.meterialUnitPriceRockWool = float(temp['SQM Per Piece'])*150*float(temp['产品厚度'])*float(temp['岩棉系数']) * float(temp2['价格']) / 1000000.
             meterialUnitPrice=self.meterialUnitPriceX+self.meterialUnitPriceY+self.meterialUnitPriceGlue+self.meterialUnitPriceRockWool
-            print('X面，Y面，胶水，岩棉：',self.meterialUnitPriceX,self.meterialUnitPriceY,self.meterialUnitPriceGlue,self.meterialUnitPriceRockWool)
             self.SetCellValue(11+i,12,'%.2f'%meterialUnitPrice)
 
             productLaborAmount = 0
@@ -2401,7 +2485,6 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         ceilingTotalAmount = 0.0
         ceilingTatalPriceUSD = 0.0
         for i, ceilingDict in enumerate(self.dataCeiling):
-            print("i=",i)
             ceilingAmount = float(ceilingDict['数量'])
             ceilingTotalAmount += ceilingAmount
             self.SetCellValue(11+4+len(self.dataWall)+2+i,0,str(i+1))
@@ -2446,8 +2529,6 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
                         self.meterialUnitPriceY = 0.0
                 else:
                     if temp['Y面厚度']!=None:
-                        print('temp2=',temp2)
-                        print('temp=',temp)
                         self.meterialUnitPriceY = float(temp['Y面厚度'])*float(temp2['密度'])*float(temp['Y面材料系数'])*float(temp2['价格'])/1000
                     else:
                         self.meterialUnitPriceY = 0.0
@@ -2461,13 +2542,11 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
                 self.meterialUnitPriceGlue=0.0
             # _, temp2 = GetMeterialUnitPriceByIdInDB(self.log, WHICHDB, '2022-07-14', self.meterialIdRockWool)
             temp2 = self.allMeterialUnitPriceList[self.meterialIdRockWool]
-            print("产品厚度=",temp['产品厚度'])
             if ceilingDict['产品名称']=='TNF-C46':
                 self.meterialUnitPriceRockWool = float(temp['SQM Per Piece'])*8.*float(ceilingDict['产品厚度'])*float(temp['岩棉系数']) * float(temp2['价格']) / 100000.
             else:
                 self.meterialUnitPriceRockWool = float(temp['SQM Per Piece'])*15.*float(ceilingDict['产品厚度'])*float(temp['岩棉系数']) * float(temp2['价格']) / 100000.
 
-            print("X面，Y面，胶水，岩棉：",self.meterialUnitPriceX,self.meterialUnitPriceY,self.meterialUnitPriceGlue,self.meterialUnitPriceRockWool)
             meterialUnitPrice=self.meterialUnitPriceX+self.meterialUnitPriceY+self.meterialUnitPriceGlue+self.meterialUnitPriceRockWool
             self.SetCellValue(11+4+len(self.dataWall)+2+i,12,'%.2f'%meterialUnitPrice)
 

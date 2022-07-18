@@ -1906,6 +1906,29 @@ def GetPDF(log,whichDB):
         file.write(image)
         file.close()
 
+def UpdateOrderOperatorCheckStateByID(log,whichDB,id,state,quotationDate,exchangeRateDate):
+    id = int(id)
+    result = 1
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = "UPDATE `订单信息` SET `订单部审核状态`= '%s',`报价参考日期`= '%s',`汇率参考日期`= '%s' where `Index`= %s " % (state,str(quotationDate),str(exchangeRateDate),id)
+    try:
+        cursor.execute(sql)
+        db.commit()  # 必须有，没有的话插入语句不会执行
+    except:
+        print("修改订单部审核状态出错！")
+        db.rollback()
+        result = -1
+    db.close()
+    return result
+
 def UpdateTechCheckStateByID(log,whichDB,id,state):
     id = int(id)
     result = 1
@@ -2092,13 +2115,11 @@ def SaveMeterialTodayPriceInDB(log,whichDB,dicList):
         except:
             print("error new2")
             db.rollback()
-    print("dicList=",dicList)
     id = "原材料单价表"
     for dic in dicList:
         dic["市价更新日期"]=str(datetime.date.today())
         ls = [(k,dic[k]) for k in dic if dic[k] is not None]
         sql = 'insert `%s` (' %id + ','.join(i[0] for i in ls)+') values ('+','.join('%r' %i[1] for i in ls)+')'
-        print("sql=",sql)
         try:
             cursor.execute(sql)
             db.commit()  # 必须有，没有的话插入语句不会执行
@@ -2108,6 +2129,25 @@ def SaveMeterialTodayPriceInDB(log,whichDB,dicList):
     db.close()
 
 
+
+def GetExchagneRateInDB(log,whichDB,Date):
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % dbName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % dbName[whichDB], colour=wx.RED)
+        return None
+    cursor = db.cursor()
+    sql ="SELECT `汇率` FROM `美元汇率表` where `日期`='%s'"%(Date)
+    # sql="select * from `原材料单价表` where `市价更新日期`='%s'"%(Date)
+    cursor.execute(sql)
+    result = cursor.fetchone()
+    if result != None:
+        result=result[0]
+    db.close()
+    return result
 
 def GetMeterialPrice(log,whichDB):
     try:
