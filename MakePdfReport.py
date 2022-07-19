@@ -1096,6 +1096,22 @@ def MakeFormingScheduleTemplate(filename,data=[]):
     DrawFormingSchedule(myCanvas)
     myCanvas.save()
 
+def MakeQuotationSheetTemplate(filename,data=[]):
+    width, height = A4
+    myCanvas = canvas.Canvas(filename, pagesize=A4)
+    myCanvas.setFont("SimSun", 18)
+    myCanvas.drawCentredString(width/2,730, text="伊纳克赛(南通)精致内饰材料有限公司产品报价单")
+    myCanvas.drawImage(bitmapDir+"/python_logo.png", 30, 710,
+                        width=40, height=40)
+    myCanvas.setFont("SimSun", 12)
+    myCanvas.drawCentredString(width/2,710, text="Inexa (NanTong) Interiors Co.Ltd Forming Schedule")
+    DrawLine(myCanvas,1,*coord(10, 33, height, mm),*coord(200, 33, height, mm))
+    myCanvas.drawString(40,670, text="订单号；%s"%'64757-001')
+    myCanvas.drawRightString(width-50, 670, '出单日期：%s'%(datetime.date.today()))
+    # simple_table_with_style(filename)
+    DrawFormingSchedule(myCanvas)
+    myCanvas.save()
+
 
 # def form_letter():
 #     doc = SimpleDocTemplate("form_letter.pdf",

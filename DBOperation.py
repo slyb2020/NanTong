@@ -1998,7 +1998,7 @@ def UpdateFinancingCheckStateByID(log,whichDB,id,state):
     db.close()
     return result
 
-def UpdateManagerCheckStateByID(log,whichDB,id,state):
+def UpdateManagerCheckStateByID(log,whichDB,id,state,quotationDate=None,exchangeRateDate=None):
     id = int(id)
     result = 1
     try:
@@ -2010,12 +2010,12 @@ def UpdateManagerCheckStateByID(log,whichDB,id,state):
             log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
         return -1, []
     cursor = db.cursor()
-    sql = "UPDATE `订单信息` SET `经理审核状态`= '%s' where `Index`= %s " % (state,id)
+    sql = "UPDATE `订单信息` SET `经理审核状态`= '%s',`报价参考日期`= '%s',`汇率参考日期`= '%s' where `Index`= %s " % (state,str(quotationDate),str(exchangeRateDate),id)
     try:
         cursor.execute(sql)
         db.commit()  # 必须有，没有的话插入语句不会执行
     except:
-        print("修改设计审核状态出错！")
+        print("修改经理审核状态出错！")
         db.rollback()
         result = -1
     db.close()
@@ -2222,6 +2222,23 @@ def GetDraftComponentInfoByID(log, whichDB, id,type):
     data_dict = [dict(zip(column,row)) for row in result]
     db.close()
     return data_dict
+
+def GetQuotationDateAndExchangeDateFromDB(log,whichDB,id):
+    id = int(id)
+    try:
+        db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
+                             passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
+    except:
+        wx.MessageBox("无法连接%s!" % packageDBName[whichDB], "错误信息")
+        if log:
+            log.WriteText("无法连接%s!" % packageDBName[whichDB], colour=wx.RED)
+        return -1, []
+    cursor = db.cursor()
+    sql = "select `报价参考日期`,`汇率参考日期`  from `订单信息` where `Index`=%s" % id
+    cursor.execute(sql)
+    record=cursor.fetchone()
+    db.close()
+    return record[0],record[1]
 
 def GetTechCheckStateByID(log,whichDB,id):
     id = int(id)

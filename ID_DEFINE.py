@@ -17,6 +17,7 @@ dirName = os.path.dirname(os.path.abspath(__file__))
 bitmapDir = os.path.join(dirName, 'bitmaps')
 scheduleDir = os.path.join(dirName, '工单/')
 bluePrintDir = os.path.join(dirName, 'Stena 生产图纸/')
+quotationSheetDir = os.path.join(dirName, '报价单/')
 # sys.path.append(os.path.split(dirName)[0])
 
 WHICHDB = 2

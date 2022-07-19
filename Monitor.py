@@ -43,7 +43,6 @@ def GetLastUnitPriceInDB(log,whichDB):
     return temp[0]
 
 def SaveExchangeRateInDB(log,whichDB,exchangeRate,myDate):
-    print("Date=",myDate)
     try:
         db = MySQLdb.connect(host="%s" % dbHostName[whichDB], user='%s' % dbUserName[whichDB],
                              passwd='%s' % dbPassword[whichDB], db='%s' % dbName[whichDB], charset='utf8')
@@ -101,7 +100,6 @@ def SaveMeterialPriceInDB(log,whichDB,dicList,myDate):
         dic["市价更新日期"]=myDate
         ls = [(k,dic[k]) for k in dic if dic[k] is not None]
         sql = 'insert `%s` (' %id + ','.join(i[0] for i in ls)+') values ('+','.join('%r' %i[1] for i in ls)+')'
-        print("sql=",sql)
         try:
             cursor.execute(sql)
             db.commit()  # 必须有，没有的话插入语句不会执行
@@ -134,7 +132,6 @@ while True:
     if exMinute != minute:
         exMinute = minute
         exchangeRate = GetExchangeRate()
-        print("exchangeRate=",exchangeRate)
         if exchangeRate < exExchangeRage:
             exExchangeRage = exchangeRate
             SaveExchangeRateInDB(None, WHICHDB, exchangeRate, Date)
@@ -144,9 +141,7 @@ while True:
         Date = Date.split('-')
         Date = datetime.date(int(Date[0]),int(Date[1]),int(Date[2]))
         if Date != datetime.date.today()-datetime.timedelta(1):
-            print("Update")
             delta = (datetime.date.today()-Date).days-1
             _, priceList = GetAllMeterialUnitPriceInDB(None,WHICHDB,str(Date))
-            print(priceList)
             for i in range(delta):
                 SaveMeterialPriceInDB(None,WHICHDB,priceList,str(Date+datetime.timedelta(i+1)))

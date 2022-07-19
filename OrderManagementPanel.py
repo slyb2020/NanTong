@@ -6,6 +6,8 @@ import wx
 import wx.grid as gridlib
 import wx.lib.agw.pybusyinfo as PBI
 
+from wx.lib.pdfviewer import pdfViewer, pdfButtonPanel
+from MakePdfReport import *
 from BluePrintManagementPanel import BluePrintShowPanel
 from DBOperation import GetAllOrderAllInfo, GetAllOrderList, GetOrderDetailRecord, InsertNewOrder, GetStaffInfoWithID, \
     GetDraftOrderDetailByID, UpdateDraftOrderInfoByID, GetTechDrawingDataByID,GetTechCheckStateByID,\
@@ -13,7 +15,7 @@ from DBOperation import GetAllOrderAllInfo, GetAllOrderList, GetOrderDetailRecor
     UpdatePurchchaseCheckStateByID,UpdateFinancingCheckStateByID,UpdateManagerCheckStateByID,UpdateOrderSquareByID,\
     GetProductMeterialUnitPriceInDB,GetMeterialUnitPriceByIdInDB,GetProductLaborUnitPriceInDB,\
     GetAllProductMeterialUnitPriceInDB,GetAllMeterialUnitPriceByIdInDB,GetExchagneRateInDB,\
-    UpdateOrderOperatorCheckStateByID
+    UpdateOrderOperatorCheckStateByID,GetQuotationDateAndExchangeDateFromDB
 from DateTimeConvert import *
 from ID_DEFINE import *
 from OrderDetailTree import OrderDetailTree
@@ -342,7 +344,7 @@ class OrderManagementPanel(wx.Panel):
             self.showRange=[]
             # if self.parent.master.operatorCharacter=="下单员":
             if self.type == "草稿":
-                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","设计部审核","采购部审核","财务部审核","订单部审核","经理审核"]
+                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术部审核","采购部审核","财务部审核","订单部审核","经理审核"]
                 self.colWidthList =      [60,    60,          80,      80,    80,      85,       85,      60,     60,      70,       70,       70,           70,       70]
             elif self.type =="在产":
                 self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
@@ -351,7 +353,7 @@ class OrderManagementPanel(wx.Panel):
                 self.colLabelValueList = ["序号","订单编号","订单名称","总价","产品数量","订单交货日期","下单时间","下单员","订单状态"]
                 self.colWidthList =      [60,    60,       80,       70,   60,      85,          85,       85,    60]
             elif self.type =="废弃":
-                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","设计部审核","采购审核","财务审核","订单部审核","经理审核"]
+                self.colLabelValueList = ["剩余时间","订单编号","订单名称","总价","产品数量","投标日期","下单日期","下单员","订单状态","技术部审核","采购审核","财务审核","订单部审核","经理审核"]
                 self.colWidthList =      [60,    60,          80,      70,    60,      85,       85,      60,     60,      70,       70,       70,       70,        70]
             self.orderDetailData = []
             if self.dataList==[]:
@@ -641,7 +643,7 @@ class OrderManagementPanel(wx.Panel):
                 self.ReCreateOrderEditPanel()
             if self.master.operatorCharacter=="设计员":
                 self.orderTechCheckPanel = wx.Panel(self.notebook,size=(260,-1))
-                self.notebook.AddPage(self.orderTechCheckPanel, "设计部审核")
+                self.notebook.AddPage(self.orderTechCheckPanel, "技术部审核")
             if self.master.operatorCharacter=='采购员':
                 self.orderPurchaseCheckPanel = wx.Panel(self.notebook,size=(260,-1))
                 self.notebook.AddPage(self.orderPurchaseCheckPanel, "采购部审核")
@@ -944,7 +946,7 @@ class DraftOrderPanel(wx.Panel):
             topsizer.Add(pg, 1, wx.EXPAND)
             rowsizer = wx.BoxSizer(wx.HORIZONTAL)
             if self.character == "设计员":
-                but = wx.Button(panel,-1,"开始设计部审核",size=(-1,35))
+                but = wx.Button(panel,-1,"开始技术部审核",size=(-1,35))
                 but.Bind( wx.EVT_BUTTON, self.OnStartTechCheck)
                 rowsizer.Add(but,1)
                 # but = wx.Button(panel,-1,"完成设计审核",size=(-1,35))
@@ -967,13 +969,13 @@ class DraftOrderPanel(wx.Panel):
             elif self.character == "经理":
                 but = wx.Button(panel,-1,"开始经理审核",size=(-1,35))
                 but.Bind( wx.EVT_BUTTON, self.OnStartManagerCheck)
-                rowsizer.Add(but,1)
-                but = wx.Button(panel,-1,"完成经理审核",size=(-1,35))
-                but.Bind( wx.EVT_BUTTON, self.OnFinishManagerCheck)
+                # rowsizer.Add(but,1)
+                # but = wx.Button(panel,-1,"完成经理审核",size=(-1,35))
+                # but.Bind( wx.EVT_BUTTON, self.OnFinishManagerCheck)
                 rowsizer.Add(but,1)
             topsizer.Add(rowsizer,0,wx.EXPAND)
 
-        # pg.AddPage( "设计部审核信息" )
+        # pg.AddPage( "技术部审核信息" )
         # pg.Append( wxpg.PropertyCategory("1 - 订单基本信息2") )
         # sp = pg.Append( wxpg.StringProperty('StringProperty_as_Password', value='ABadPassword') )
         # sp.SetAttribute('Hint', 'This is a hint')
@@ -1127,9 +1129,18 @@ class DraftOrderPanel(wx.Panel):
         self.ReCreate()
 
     def OnStartManagerCheck(self,event):
-        self.draftCheckFrame = DraftCheckFrame(self, self.log,self.ID,character="经理")
-        self.draftCheckFrame.Show(True)
-        self.draftCheckFrame.CenterOnScreen()
+        obj = event.GetEventObject()
+        name = obj.GetName()
+        if self.techCheckState != "Y":
+            wx.MessageBox("订单没有完成技术审核，无法进行经理审核，请稍后再试！","信息提示")
+            return
+        dlg = QuotationSheetDialog(self,self.log,self.ID,"经理",name)
+        dlg.CenterOnScreen()
+        dlg.ShowModal()
+        dlg.Destroy()
+        self.master.dataList = []
+        self.master.recreateEnable = True
+        self.master.ReCreate()
 
     def OnFinishManagerCheck(self,event):
         pass
@@ -1153,7 +1164,7 @@ class DraftOrderPanel(wx.Panel):
     def OnStartTechCheck(self,event):
         self.master.checkDataTimer.Stop()
         if self.techCheckState == 'Y':
-            dlg = wx.MessageDialog(self,"此订单已完成设计部审核，如果您继续执行审核操作会导致之前的操作全部重置！\r\n请确认是否继续执行审核操作？","信息提示",style=wx.YES_NO)
+            dlg = wx.MessageDialog(self,"此订单已完成技术部审核，如果您继续执行审核操作会导致之前的操作全部重置！\r\n请确认是否继续执行审核操作？","信息提示",style=wx.YES_NO)
             if dlg.ShowModal()==wx.ID_NO:
                 self.master.checkDataTimer.Start(10000)
                 return
@@ -1163,6 +1174,8 @@ class DraftOrderPanel(wx.Panel):
             UpdatePurchchaseCheckStateByID(self.log,WHICHDB,self.ID,'N')
             UpdateFinancingCheckStateByID(self.log,WHICHDB,self.ID,'N')
             UpdateManagerCheckStateByID(self.log,WHICHDB,self.ID,'N')
+            UpdateOrderOperatorCheckStateByID(self.log, WHICHDB, self.ID, 'N', None, None)
+            UpdateManagerCheckStateByID(self.log, WHICHDB, self.ID, 'N')
         # self.techCheckFrame = wx.MessageDialog(self,"测试进行中")
         # self.techCheckFrame.ShowModal()
         self.techCheckDialog = TechCheckDialog(self, self.log, self.ID, character="设计员")
@@ -1411,7 +1424,7 @@ class TechCheckDialog(wx.Dialog):
         self.character = character
         # self.log.WriteText("操作员：'%s' 开始执行库存参数设置操作。。。\r\n"%(self.parent.operator_name))
         self.SetExtraStyle(wx.DIALOG_EX_METAL)
-        self.Create(parent, -1, "设计部审核对话框", pos=wx.DefaultPosition ,size=(1350,800))
+        self.Create(parent, -1, "技术部审核对话框", pos=wx.DefaultPosition ,size=(1350,800))
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.panel = wx.Panel(self, size=(1350,750))
         sizer.Add(self.panel,1,wx.EXPAND)
@@ -1422,10 +1435,10 @@ class TechCheckDialog(wx.Dialog):
         bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
         bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
         bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
-        btnSave = wx.Button(self, -1, "保存设计部审核数据",size=(200,50))
+        btnSave = wx.Button(self, -1, "保存技术部审核数据",size=(200,50))
         btnSave.SetBitmap(bitmap3,wx.LEFT)
         btnSave.Bind(wx.EVT_BUTTON,self.OnSaveBTN)
-        btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成设计部审核并退出", size=(200, 50))
+        btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成技术部审核并退出", size=(200, 50))
         btnSaveAndExit.Bind(wx.EVT_BUTTON,self.OnSaveExitBTN)
         btnSaveAndExit.SetBitmap(bitmap1, wx.LEFT)
         btnCancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
@@ -2011,10 +2024,23 @@ class QuotationSheetDialog(wx.Dialog):
         self.id = id
         self.character = character
         self.name = name
-        self.quotationDate=datetime.date.today() - datetime.timedelta(1)
-        self.exchangeDate=datetime.date.today() - datetime.timedelta(1)
+        quotationDate, exchangeDate = GetQuotationDateAndExchangeDateFromDB(self.log,WHICHDB,self.id)
+        if quotationDate == None:
+            self.quotationDate=datetime.date.today() - datetime.timedelta(1)
+        else:
+            quotationDate=quotationDate.split('-')
+            self.quotationDate = datetime.date(int(quotationDate[0]),int(quotationDate[1]),int(quotationDate[2]))
+        if exchangeDate ==None:
+            self.exchangeDate=datetime.date.today() - datetime.timedelta(1)
+        else:
+            exchangeDate=exchangeDate.split('-')
+            self.exchangeDate = datetime.date(int(exchangeDate[0]),int(exchangeDate[1]),int(exchangeDate[2]))
         self.SetExtraStyle(wx.DIALOG_EX_METAL)
-        self.Create(parent, -1, "报价单生成对话框", pos=wx.DefaultPosition ,size=(1900,900))
+        if self.character=='下单员':
+            title = "订单部审核对话框"
+        elif self.character=='经理':
+            title = "经理审核对话框"
+        self.Create(parent, -1, title, pos=wx.DefaultPosition ,size=(1900,900))
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.controlPanel = wx.Panel(self, size=(1900,50))
         sizer.Add(self.controlPanel,0,wx.EXPAND)
@@ -2027,12 +2053,17 @@ class QuotationSheetDialog(wx.Dialog):
         bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
         bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
         bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
-        if self.name == "生成报价单":
+        if self.character == '下单员' and self.name == "生成报价单":
             createQuotationSheetBTN = wx.Button(self,-1,"生成报价单",size=(200, 50))
             createQuotationSheetBTN.SetBitmap(bitmap3, wx.LEFT)
+            createQuotationSheetBTN.Bind(wx.EVT_BUTTON,self.OnCreateQuotationSheetBTN)
             btnsizer.Add((40, -1), 0)
             btnsizer.Add(createQuotationSheetBTN, 0)
-        btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成订单部审核并退出", size=(200, 50))
+        if self.character == '下单员':
+            label="完成订单部审核并退出"
+        else:
+            label="完成经理审核并退出"
+        btnSaveAndExit = wx.Button(self, wx.ID_OK, label, size=(200, 50))
         btnSaveAndExit.Bind(wx.EVT_BUTTON,self.OnSaveExitBTN)
         btnSaveAndExit.SetBitmap(bitmap1, wx.LEFT)
         btnCancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
@@ -2046,9 +2077,17 @@ class QuotationSheetDialog(wx.Dialog):
         sizer.Fit(self)
         self.ReCreateControlPanel()
         self.ReCreateGrid()
+    def OnCreateQuotationSheetBTN(self,event):
+        filename = quotationSheetDir+'报价单.pdf'
+        MakeQuotationSheetTemplate(filename)
+        self.Close()
+        # self.pdfViewerPanel.viewer.LoadFile(filename)
 
     def OnSaveExitBTN(self,event):
-        UpdateOrderOperatorCheckStateByID(self.log,WHICHDB,self.id,'Y',self.quotationDate,self.exchangeDate)
+        if self.character == "下单员":
+            UpdateOrderOperatorCheckStateByID(self.log,WHICHDB,self.id,'Y',self.quotationDate,self.exchangeDate)
+        else:
+            UpdateManagerCheckStateByID(self.log,WHICHDB,self.id,'Y',self.quotationDate,self.exchangeDate)
         self.Close()
 
 
@@ -2077,6 +2116,9 @@ class QuotationSheetDialog(wx.Dialog):
         self.controlPanel.SetSizer(vbox)
         self.quotationDateCtrl.Bind(wx.adv.EVT_DATE_CHANGED, self.OnQuotationDateChanged)
         self.exchangeDateCtrl.Bind(wx.adv.EVT_DATE_CHANGED,self.OnExchangeRatDateChanged)
+        if self.name == "生成报价单":
+            self.quotationDateCtrl.Enable(False)
+            self.exchangeDateCtrl.Enable(False)
 
     def OnExchangeRatDateChanged(self,event):
         if event.GetDate() != self.exchangeDate:
