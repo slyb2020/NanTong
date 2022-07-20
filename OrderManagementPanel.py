@@ -2096,7 +2096,6 @@ class QuotationSheetDialog(wx.Dialog):
         dlg.ShowModal()
         dlg.Close()
         self.Close()
-        self.pdfViewerPanel.viewer.LoadFile(filename)
 
     def OnSaveExitBTN(self,event):
         if self.character == "下单员":
@@ -2710,38 +2709,7 @@ class QuotationSheetViewDialog(wx.Dialog):
         self.panel.Layout()
         self.buttonpanel.viewer = self.viewer
         self.viewer.buttonpanel = self.buttonpanel
-        # line = wx.StaticLine(self, -1, size=(30, -1), style=wx.LI_HORIZONTAL)
-        # sizer.Add(line, 0, wx.GROW | wx.RIGHT | wx.TOP, 5)
-
-        # btnsizer = wx.BoxSizer()
-        # bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
-        # bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
-        # bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
-        # btnSave = wx.Button(self, -1, "保存技术部审核数据",size=(200,50))
-        # btnSave.SetBitmap(bitmap3,wx.LEFT)
-        # btnSave.Bind(wx.EVT_BUTTON,self.OnSaveBTN)
-        # btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成技术部审核并退出", size=(200, 50))
-        # btnSaveAndExit.Bind(wx.EVT_BUTTON,self.OnSaveExitBTN)
-        # btnSaveAndExit.SetBitmap(bitmap1, wx.LEFT)
-        # btnCancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
-        # btnCancel.SetBitmap(bitmap2, wx.LEFT)
-        # btnsizer.Add(btnSave, 0)
-        # btnsizer.Add((40, -1), 0)
-        # btnsizer.Add(btnSaveAndExit, 0)
-        # btnsizer.Add((40, -1), 0)
-        # btnsizer.Add(btnCancel, 0)
-        # sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
         self.SetSizer(sizer)
         sizer.Fit(self)
         self.viewer.LoadFile(filename)
 
-class QuotationSheetViewFrame(wx.Frame):
-    def __init__(self, parent, log,id,character):
-        self.parent = parent
-        self.log = log
-        self.id = id
-        self.character = character
-        wx.Frame.__init__(
-            self, parent, -1, "报价单浏览窗口"%self.id, size=(1600,1200)
-        )
-        self.SetBackgroundColour(wx.Colour(240,240,240))
