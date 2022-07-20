@@ -2078,10 +2078,25 @@ class QuotationSheetDialog(wx.Dialog):
         self.ReCreateControlPanel()
         self.ReCreateGrid()
     def OnCreateQuotationSheetBTN(self,event):
-        filename = quotationSheetDir+'报价单.pdf'
-        MakeQuotationSheetTemplate(filename)
+        filename = quotationSheetDir+'报价单%05d.pdf'%self.id
+        dataWall = self.quotationSheetGrid.GetWallData()
+        dataCeiling = self.quotationSheetGrid.GetCeilingData()
+
+        # for record in self.quotationSheetGrid.dataWall:
+        #     temp=list(record.values())
+        #     temp=temp[1:-2]
+        #     dataWall.append(temp)
+        # for record in self.quotationSheetGrid.dataCeiling:
+        #     temp=list(record.values())
+        #     temp=temp[1:-2]
+        #     dataCeiling.append(temp)
+        MakeQuotationSheetTemplate(filename,dataWall,dataCeiling)
+        dlg = QuotationSheetViewDialog(self,self.log,filename)
+        dlg.CenterOnScreen()
+        dlg.ShowModal()
+        dlg.Close()
         self.Close()
-        # self.pdfViewerPanel.viewer.LoadFile(filename)
+        self.pdfViewerPanel.viewer.LoadFile(filename)
 
     def OnSaveExitBTN(self,event):
         if self.character == "下单员":
@@ -2247,6 +2262,24 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
         # self.Bind(gridlib.EVT_GRID_EDITOR_HIDDEN, self.OnEditorHidden)
         # self.Bind(gridlib.EVT_GRID_EDITOR_CREATED, self.OnEditorCreated)
         self.Thaw()
+
+    def GetWallData(self):
+        dataWall=[]
+        for row in range(len(self.dataWall)+1):
+            rowList=[]
+            for col in range(11):
+                rowList.append(self.GetCellValue(row+11,col))
+            dataWall.append(rowList)
+        return dataWall
+
+    def GetCeilingData(self):
+        dataCeiling=[]
+        for row in range(len(self.dataCeiling)+1):
+            rowList=[]
+            for col in range(11):
+                rowList.append(self.GetCellValue(row+11+len(self.dataWall)+6,col))
+            dataCeiling.append(rowList)
+        return dataCeiling
 
     def ReCreate(self):
         _, self.allProductMeterialUnitPriceList = GetAllProductMeterialUnitPriceInDB(self.log, WHICHDB)
@@ -2654,3 +2687,61 @@ class QuotationSheetGrid(gridlib.Grid):  ##, mixins.GridAutoEditMixin):
             self.moveTo = None
 
         evt.Skip()
+
+class QuotationSheetViewDialog(wx.Dialog):
+    def __init__(self, parent, log, filename):
+        wx.Dialog.__init__(self)
+        self.parent = parent
+        self.log = log
+        # self.log.WriteText("操作员：'%s' 开始执行库存参数设置操作。。。\r\n"%(self.parent.operator_name))
+        self.SetExtraStyle(wx.DIALOG_EX_METAL)
+        self.Create(parent, -1, "报价单浏览窗口", pos=wx.DefaultPosition ,size=(1600,1200))
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.panel = wx.Panel(self,size=(1600,1200))
+        self.buttonpanel = pdfButtonPanel(self.panel, wx.ID_ANY,
+                                wx.DefaultPosition, wx.DefaultSize, 0)
+        self.viewer = pdfViewer( self.panel, wx.ID_ANY, wx.DefaultPosition,
+                                wx.DefaultSize, wx.HSCROLL|wx.VSCROLL|wx.SUNKEN_BORDER)
+        sizer.Add(self.panel,1,wx.EXPAND)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        vbox.Add(self.buttonpanel,0,wx.EXPAND)
+        vbox.Add(self.viewer,1,wx.EXPAND)
+        self.panel.SetSizer(vbox)
+        self.panel.Layout()
+        self.buttonpanel.viewer = self.viewer
+        self.viewer.buttonpanel = self.buttonpanel
+        # line = wx.StaticLine(self, -1, size=(30, -1), style=wx.LI_HORIZONTAL)
+        # sizer.Add(line, 0, wx.GROW | wx.RIGHT | wx.TOP, 5)
+
+        # btnsizer = wx.BoxSizer()
+        # bitmap1 = wx.Bitmap(bitmapDir+"/ok3.png", wx.BITMAP_TYPE_PNG)
+        # bitmap2 = wx.Bitmap(bitmapDir+"/cancel1.png", wx.BITMAP_TYPE_PNG)
+        # bitmap3 = wx.Bitmap(bitmapDir+"/33.png", wx.BITMAP_TYPE_PNG)
+        # btnSave = wx.Button(self, -1, "保存技术部审核数据",size=(200,50))
+        # btnSave.SetBitmap(bitmap3,wx.LEFT)
+        # btnSave.Bind(wx.EVT_BUTTON,self.OnSaveBTN)
+        # btnSaveAndExit = wx.Button(self, wx.ID_OK, "完成技术部审核并退出", size=(200, 50))
+        # btnSaveAndExit.Bind(wx.EVT_BUTTON,self.OnSaveExitBTN)
+        # btnSaveAndExit.SetBitmap(bitmap1, wx.LEFT)
+        # btnCancel = wx.Button(self, wx.ID_CANCEL, "取  消", size=(200, 50))
+        # btnCancel.SetBitmap(bitmap2, wx.LEFT)
+        # btnsizer.Add(btnSave, 0)
+        # btnsizer.Add((40, -1), 0)
+        # btnsizer.Add(btnSaveAndExit, 0)
+        # btnsizer.Add((40, -1), 0)
+        # btnsizer.Add(btnCancel, 0)
+        # sizer.Add(btnsizer, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+        self.SetSizer(sizer)
+        sizer.Fit(self)
+        self.viewer.LoadFile(filename)
+
+class QuotationSheetViewFrame(wx.Frame):
+    def __init__(self, parent, log,id,character):
+        self.parent = parent
+        self.log = log
+        self.id = id
+        self.character = character
+        wx.Frame.__init__(
+            self, parent, -1, "报价单浏览窗口"%self.id, size=(1600,1200)
+        )
+        self.SetBackgroundColour(wx.Colour(240,240,240))

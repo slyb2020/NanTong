@@ -1,3 +1,4 @@
+import numpy as np
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter,legal,A4
@@ -15,6 +16,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from ID_DEFINE import *
 from BarCodeGenerator import BarCodeGenerator
 from DBOperation import UpdatePanelGluePageInDB,UpdatePanelGlueLabelPageInDB
+from reportlab.lib.styles import ParagraphStyle
 
 pdfmetrics.registerFont(TTFont('SimSun', 'Font/SimSun.ttf'))  #注册字体
 
@@ -1096,20 +1098,183 @@ def MakeFormingScheduleTemplate(filename,data=[]):
     DrawFormingSchedule(myCanvas)
     myCanvas.save()
 
-def MakeQuotationSheetTemplate(filename,data=[]):
-    width, height = A4
-    myCanvas = canvas.Canvas(filename, pagesize=A4)
-    myCanvas.setFont("SimSun", 18)
-    myCanvas.drawCentredString(width/2,730, text="伊纳克赛(南通)精致内饰材料有限公司产品报价单")
-    myCanvas.drawImage(bitmapDir+"/python_logo.png", 30, 710,
-                        width=40, height=40)
-    myCanvas.setFont("SimSun", 12)
-    myCanvas.drawCentredString(width/2,710, text="Inexa (NanTong) Interiors Co.Ltd Forming Schedule")
-    DrawLine(myCanvas,1,*coord(10, 33, height, mm),*coord(200, 33, height, mm))
-    myCanvas.drawString(40,670, text="订单号；%s"%'64757-001')
-    myCanvas.drawRightString(width-50, 670, '出单日期：%s'%(datetime.date.today()))
-    # simple_table_with_style(filename)
-    DrawFormingSchedule(myCanvas)
+def DrawQuotationSheet(c,record):
+    styles = getSampleStyleSheet()
+    # # Modify the Normal Style
+    # styles["Normal"].fontSize = 12
+    # styles["Normal"].leading = 14
+
+    # Create a Justify style
+    styles.add(ParagraphStyle(name='Center', alignment=1))
+    Title1 = Paragraph('<font name="SimSun">Item</font>',style = styles['Center'])
+    Title2 = Paragraph('<font name="SimSun">Product.</font>',style = styles['Center'])
+    Title3 = Paragraph('<font name="SimSun">Product</font>',style = styles['Center'])
+    Title4 = Paragraph('<font name="SimSun">Product</font>',style = styles['Center'])
+    Title5 = Paragraph('<font name="SimSun">Product</font>',style = styles['Center'])
+    Title6 = Paragraph('<font name="SimSun">Product</font>',style = styles['Center'])
+    Title7 = Paragraph('<font name="SimSun">Product</font>',style = styles['Center'])
+    Title8 = Paragraph('<font name="SimSun">Unit</font>',style = styles['Center'])
+    Title9 = Paragraph('<font name="SimSun">Total</font>',style = styles['Center'])
+    Title10 = Paragraph('<font name="SimSun">Unit Price</font>',style = styles['Center'])
+    Title11 = Paragraph('<font name="SimSun">Total Price</font>',style = styles['Center'])
+    Title21 = Paragraph('<font name="SimSun"> </font>',style = styles['Center'])
+    Title22 = Paragraph('<font name="SimSun">No.</font>',style = styles['Center'])
+    Title23 = Paragraph('<font name="SimSun">Type</font>',style = styles['Center'])
+    Title24 = Paragraph('<font name="SimSun">Surface</font>',style = styles['Center'])
+    Title25 = Paragraph('<font name="SimSun">Height/length(mm)</font>',style = styles['Center'])
+    Title26 = Paragraph('<font name="SimSun">Width(mm)</font>',style = styles['Center'])
+    Title27 = Paragraph('<font name="SimSun">Thickness(mm)</font>',style = styles['Center'])
+    Title28 = Paragraph('<font name="SimSun">Unit</font>',style = styles['Center'])
+    Title29 = Paragraph('<font name="SimSun">Quantity</font>',style = styles['Center'])
+    Title30 = Paragraph('<font name="SimSun">In USD</font>',style = styles['Center'])
+    Title31 = Paragraph('<font name="SimSun">In USD</font>',style = styles['Center'])
+    data = [
+            [Title1, Title2, Title3, Title4, Title5, Title6, Title7, Title8, Title9, Title10, Title11],
+            [Title21, Title22, Title23, Title24, Title25, Title26, Title27, Title28, Title29, Title30, Title31],]
+    for item in record:
+        data.append(item)
+    tableStyle =[
+                           ('GRID', (0, 0), (-1, -1), 0.5, colors.black),       #   类别，(起始列，起始行）,(结束列，结束行)，线宽，颜色  #GRID是内外都有线   #BOX是只有外框，内部没线
+                           ('BOX', (0, 0), (-1, -1), 1, colors.black),
+                           ('BACKGROUND', (0, 0), (-1, 1), colors.khaki),
+                           ('BACKGROUND', (4, 2), (6, -1), colors.beige),
+                           ('BACKGROUND', (9, 2), (9, -1), colors.pink),
+                           ('BACKGROUND', (10, 2), (10, -1), colors.lavender),
+                           ('SPAN',(0,0),(0,1)),
+                           ('SPAN',(7,0),(7,1)),
+                           ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                           ('LINEABOVE', (0, 2), (-1, 2), 1, colors.black),
+                           # ('LINEBEFORE', (2, 1), (2, -2), 1, colors.pink),
+                           # ('BACKGROUND', (2, 2), (2, 3), colors.orange),
+                           # ('BOX', (0, 0), (-1, -1), 2, colors.black),
+                           # ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                           ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                           # # ('ALIGN', (0, 3), (0, 3), 'CENTER'),
+                           # ('BACKGROUND', (3, 0), (3, 0), colors.limegreen),
+                           # ('BACKGROUND', (3, 1), (3, 1), colors.khaki),
+                           # # ('ALIGN', (3, 1), (3, 1), 'CENTER'),
+                           # ('BACKGROUND', (3, 2), (3, 2), colors.beige),
+                           # # ('ALIGN', (3, 2), (3, 2), 'LEFT'),
+                           ]
+    tableColWidths = [15*mm,20.0*mm,25.0*mm,35.0*mm,35.0*mm,25.0*mm,30.0*mm,14.0*mm,20.0*mm,25*mm,25*mm]
+
+    t = Table(data, style=tableStyle,colWidths=tableColWidths)
+    startY = 8 + (23 - len(data)) * 6.3
+    t = Table(data, style=tableStyle,colWidths=tableColWidths)
+    t.wrapOn(c, 186.5 * mm, 800 * mm)
+    t.drawOn(c, 12.5 * mm, startY * mm)
+
+def MakeQuotationSheetTemplate(filename,dataWall=[],dataCeiling=[],expiry=30):
+    annotationList=[
+        "备注：",
+        "1. 汇率为实时更新汇率。",
+        "2. 币种根据客户要求设定。",
+        "3. 红色阴影。",
+        "4. 绿色阴影。",
+    ]
+    gap = 6.3
+    num = 31
+    width, height =  (297 * mm, 210 * mm)
+    pagesize = (297 * mm, 210 * mm)
+    myCanvas = canvas.Canvas(filename, pagesize=pagesize)
+    pageWall=int(np.ceil(len(dataWall)/20))
+    pageCeiling = int(np.ceil(len(dataCeiling)/20))  #这里的5是备注的那5行文字
+    leftRows = 20 * pageCeiling - len(dataCeiling)
+    print("leftRows=", leftRows)
+    if leftRows>=5:
+        pageTotal = pageWall + pageCeiling
+    else:
+        pageTotal = pageWall + pageCeiling + 1
+    print("pageTotal=",pageTotal)
+    for pageNum in range(pageWall):
+        myCanvas.setFont("SimSun", 18)
+        myCanvas.drawCentredString(width/2,550, text="伊纳克赛(南通)精致内饰材料有限公司产品报价单")
+        myCanvas.drawImage(bitmapDir+"/logo.jpg", 30, 530,
+                            width=40, height=40)
+        tempCode = 'O' + '%05d' % int(87) + '-' + '%s' % str(datetime.datetime.today())
+        BarCodeGenerator(tempCode)
+        myCanvas.drawImage(dirName + "/tempBarcode.png", width - 100, height - 40,
+                           width=100, height=40)
+        myCanvas.setFont("SimSun", 18)
+        myCanvas.drawCentredString(width/2,530, text="Inexa (NanTong) Interiors Co.Ltd Quotation Sheet")
+        DrawLine(myCanvas,1,*coord(10, 28, height, mm),*coord(287, 28, height, mm))
+        myCanvas.setFont("SimSun", 12)
+        myCanvas.drawString(40,500, text="报价单号(Quotation Sheet No.):%s"%'64757-001')
+        myCanvas.drawRightString(width-50, 500, '出单日期(Date of Issue ):%s'%(datetime.date.today()))
+        myCanvas.drawRightString(width-50, 480, '有效日期(Date of Expiry):%s'%(datetime.date.today()+datetime.timedelta(expiry)))
+        myCanvas.drawString(40,470, text="Re:")
+        myCanvas.drawCentredString(width/2,470, text="TNF accommodation system")
+        myCanvas.drawString(40,450, text="1) TNF Wall Panel")
+        DrawQuotationSheet(myCanvas,dataWall[pageNum*20:(pageNum+1)*20])#A1代表非尾页，A3代表尾页
+        # simple_table_with_style(filename)
+        # if len(dataWall)<=19:
+        #     DrawQuotationSheet(myCanvas,dataWall,type='A13')#A1代表首页，A2代表墙板中间页，A3代表墙板尾页，A13代表即使墙板首页又是
+        # else:
+        #     dataHead=dataWall[0:19]
+        #     dataTail = dataWall[19:]
+        #     while len(dataTail)>0:
+        #         DrawQuotationSheet(myCanvas, dataHead, type='A2')
+            # 墙板尾页，A23代表及时墙板第二页又是墙板尾页。B1代表天花板首页，B2代表天花板中间页，B3代表天花板尾页
+        # DrawLine(myCanvas, 1, *coord(0, 2 + num * gap, height, mm), *coord(287, 2 + num * gap, height, mm))
+        myCanvas.drawRightString(width - 50, 15, '页码(Page)：%s/%s' % (pageNum+1, pageTotal))
+        myCanvas.showPage()  # 这句话相当于分页，显示页面即完成当前页面，开始新页面
+    for pageNum in range(pageCeiling):
+        myCanvas.setFont("SimSun", 18)
+        myCanvas.drawCentredString(width/2,550, text="伊纳克赛(南通)精致内饰材料有限公司产品报价单")
+        myCanvas.drawImage(bitmapDir+"/logo.jpg", 30, 530,
+                            width=40, height=40)
+        tempCode = 'O' + '%05d' % int(87) + '-' + '%s' % str(datetime.datetime.today())
+        BarCodeGenerator(tempCode)
+        myCanvas.drawImage(dirName + "/tempBarcode.png", width - 100, height - 40,
+                           width=100, height=40)
+        myCanvas.setFont("SimSun", 18)
+        myCanvas.drawCentredString(width/2,530, text="Inexa (NanTong) Interiors Co.Ltd Quotation Sheet")
+        DrawLine(myCanvas,1,*coord(10, 28, height, mm),*coord(287, 28, height, mm))
+        myCanvas.setFont("SimSun", 12)
+        myCanvas.drawString(40,500, text="报价单号(Quotation Sheet No.):%s"%'64757-001')
+        myCanvas.drawRightString(width-50, 500, '出单日期(Issue  Date):%s'%(datetime.date.today()))
+        myCanvas.drawRightString(width-50, 480, '有效日期(Expiry Date):%s'%(datetime.date.today()+datetime.timedelta(expiry)))
+        myCanvas.drawString(40,470, text="Re:")
+        myCanvas.drawCentredString(width/2,470, text="TNF accommodation system")
+        myCanvas.drawString(40,450, text="2) TNF Ceiling Panel")
+        DrawQuotationSheet(myCanvas,dataCeiling[pageNum*20:(pageNum+1)*19])
+        # # simple_table_with_style(filename)
+        # if len(dataWall)<=19:
+        #     DrawQuotationSheet(myCanvas,dataWall,type='A13')#A1代表首页，A2代表墙板中间页，A3代表墙板尾页，A13代表即使墙板首页又是
+        # else:
+        #     dataHead=dataWall[0:19]
+        #     dataTail = dataWall[19:]
+        #     while len(dataTail)>0:
+        #         DrawQuotationSheet(myCanvas, dataHead, type='A2')
+            # 墙板尾页，A23代表及时墙板第二页又是墙板尾页。B1代表天花板首页，B2代表天花板中间页，B3代表天花板尾页
+        # DrawLine(myCanvas, 1, *coord(0, 2 + num * gap, height, mm), *coord(287, 2 + num * gap, height, mm))
+        myCanvas.drawRightString(width - 50, 15, '页码(Page)：%s/%s' % (pageNum+1+pageWall, pageTotal))
+        if pageNum == (pageCeiling-1):
+            for i in range(leftRows):
+                myCanvas.drawString(40, 25+(leftRows-i), text=annotationList[i])
+        myCanvas.showPage()  # 这句话相当于分页，显示页面即完成当前页面，开始新页面
+    if leftRows<5:
+        myCanvas.setFont("SimSun", 18)
+        myCanvas.drawCentredString(width/2,550, text="伊纳克赛(南通)精致内饰材料有限公司产品报价单")
+        myCanvas.drawImage(bitmapDir+"/logo.jpg", 30, 530,
+                            width=40, height=40)
+        tempCode = 'O' + '%05d' % int(87) + '-' + '%s' % str(datetime.datetime.today())
+        BarCodeGenerator(tempCode)
+        myCanvas.drawImage(dirName + "/tempBarcode.png", width - 100, height - 40,
+                           width=100, height=40)
+        myCanvas.setFont("SimSun", 18)
+        myCanvas.drawCentredString(width/2,530, text="Inexa (NanTong) Interiors Co.Ltd Quotation Sheet")
+        DrawLine(myCanvas,1,*coord(10, 28, height, mm),*coord(287, 28, height, mm))
+        myCanvas.setFont("SimSun", 12)
+        myCanvas.drawString(40,500, text="报价单号(Quotation Sheet No.):%s"%'64757-001')
+        myCanvas.drawRightString(width-50, 500, '出单日期(Issue  Date):%s'%(datetime.date.today()))
+        myCanvas.drawRightString(width-50, 480, '有效日期(Expiry Date):%s'%(datetime.date.today()+datetime.timedelta(expiry)))
+        myCanvas.drawString(40,470, text="Re:")
+        myCanvas.drawCentredString(width/2,470, text="TNF accommodation system")
+        print("leftRows=",leftRows)
+        for i in range(5-leftRows):
+            myCanvas.drawString(40, 440-i*18, text=annotationList[leftRows+i])
+        myCanvas.showPage()
     myCanvas.save()
 
 
@@ -1186,6 +1351,64 @@ def MakeQuotationSheetTemplate(filename,data=[]):
 
 if __name__ == '__main__':
     # form_letter()
-    MakeGlueNoSheetTemplate(64730,1,"glue.pdf",[[121, 64730, '2', '1', '9', 'CREW  MESS', 'N.2SF.0867', '0', 'YC08E', 'G', '2160', '200', '25', 1, 'None', 'None', '64730-0121']])
-
+    # MakeGlueNoSheetTemplate(64730,1,"glue.pdf",[[121, 64730, '2', '1', '9', 'CREW  MESS', 'N.2SF.0867', '0', 'YC08E', 'G', '2160', '200', '25', 1, 'None', 'None', '64730-0121']])
+    dataWall = [
+            ['1', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['2', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['3', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['4', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['5', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['6', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['7', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['8', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['9', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['10', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['11', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['12', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['13', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['14', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['15', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['16', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['17', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['18', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['19', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['20', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            # ['21', '1122', 'N.2SA.0001', '1495', '548', '50', '79070', 'G', '', ''],
+            # ['22', '1122', 'CC64001', '1495', '548', '25', '79070', 'G', '', ''],
+            # ['23', '1122', 'N.2SA.0001', '1495', '548', '100', '79070', 'G', '', ''],
+            # ['24', '1122', 'N.2SA.0001', '1495', '548', '50', '79070', 'G', '', ''],
+            # ['25', '1122', 'N.2SA.0001', '1495', '548', '50', '79070', 'G', '', ''],
+            # ['26', '1122', 'N.2SA.0001', '1495', '548', '50', '79070', 'G', '', ''],
+            # ['27', '1122', 'CC64001', '1495', '548', '25', '79070', 'G', '', ''],
+    ]
+    dataCeiling = [
+            ['1', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['2', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['3', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['4', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['5', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['6', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['7', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['8', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['9', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['10', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['11', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['12', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['13', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['14', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['15', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['16', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['17', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['18', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['19', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            ['20', 'TNF-2SF', 'B15 Partition', 'S.S(304)/S.S(304)','≤2500', '600','25','m2','1500','$235.15','$123456.15'],
+            # ['21', '1122', 'N.2SA.0001', '1495', '548', '50', '79070', 'G', '', ''],
+            # ['22', '1122', 'CC64001', '1495', '548', '25', '79070', 'G', '', ''],
+            # ['23', '1122', 'N.2SA.0001', '1495', '548', '100', '79070', 'G', '', ''],
+            # ['24', '1122', 'N.2SA.0001', '1495', '548', '50', '79070', 'G', '', ''],
+            # ['25', '1122', 'N.2SA.0001', '1495', '548', '50', '79070', 'G', '', ''],
+            # ['26', '1122', 'N.2SA.0001', '1495', '548', '50', '79070', 'G', '', ''],
+            # ['27', '1122', 'CC64001', '1495', '548', '25', '79070', 'G', '', ''],
+    ]
+    MakeQuotationSheetTemplate(quotationSheetDir+'报价单00087.pdf',dataWall,dataCeiling)
 
